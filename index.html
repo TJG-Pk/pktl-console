@@ -1,0 +1,1703 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PKTL License Manager</title>
+<meta name="description" content="เซ็นและเผยแพร่รายชื่อสิทธิ์ใช้งาน EA บน MT5">
+<meta name="theme-color" content="#0e151c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PKTL Lic">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: HUD console. Phone = top bar (product + sync LED) + bottom dock with 6 tabs.
+   >= 900px = left rail with the same 6 tabs. Corner-bracket frames only on the two cards that carry status. */
+:root {
+  /* dark-first: the original PKTL cyan-on-navy palette */
+  --bg: #0e151c;
+  --surface: #16212b;
+  --surface-2: #1d2b38;
+  --fg: #e5ecf3;
+  --muted: #94a5b6;
+  --line: #2a3a49;
+  --accent: #5cc4e2;
+  --accent-fg: #04232d;
+  --accent-soft: #15333f;
+  --glow: rgb(92 196 226 / 0.38);
+  --grid: rgb(92 196 226 / 0.045);
+  --ok: #5ad193;
+  --ok-bg: #153626;
+  --warn: #f2b755;
+  --warn-bg: #3b2d12;
+  --bad: #ff8d84;
+  --bad-bg: #40201d;
+  --font-ui: "IBM Plex Sans Thai", "Noto Sans Thai", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Chakra Petch", "IBM Plex Sans Thai", "Noto Sans Thai", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --nav-h: 64px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f2f5f8; --surface: #ffffff; --surface-2: #eaeff4; --fg: #16202b; --muted: #566677; --line: #d6dee6;
+    --accent: #0a6c8c; --accent-fg: #ffffff; --accent-soft: #dcf0f6; --glow: rgb(10 108 140 / 0.2); --grid: rgb(10 108 140 / 0.05);
+    --ok: #17703f; --ok-bg: #dff3e7; --warn: #8f5200; --warn-bg: #fdecc8; --bad: #ab2a20; --bad-bg: #fbe0dd;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f2f5f8; --surface: #ffffff; --surface-2: #eaeff4; --fg: #16202b; --muted: #566677; --line: #d6dee6;
+  --accent: #0a6c8c; --accent-fg: #ffffff; --accent-soft: #dcf0f6; --glow: rgb(10 108 140 / 0.2); --grid: rgb(10 108 140 / 0.05);
+  --ok: #17703f; --ok-bg: #dff3e7; --warn: #8f5200; --warn-bg: #fdecc8; --bad: #ab2a20; --bad-bg: #fbe0dd;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body {
+  margin: 0;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(48rem 20rem at 50% -6rem, var(--glow), transparent 70%),
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: auto, 32px 32px, 32px 32px;
+  background-repeat: no-repeat, repeat, repeat;
+  color: var(--fg);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 calc(var(--nav-h) + 28px);
+  -webkit-text-size-adjust: 100%;
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  background: var(--bg); z-index: 40;
+}
+code, .mono { font-family: var(--font-mono); font-size: 0.92em; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: 0.01em; margin: 0; text-wrap: balance; }
+h2 { font-size: 17px; margin-bottom: 8px; }
+h3 { font-size: 15px; margin: 16px 0 6px; }
+p { margin: 0 0 8px; }
+a { color: var(--accent); }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, a:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+
+/* ---------- shell ---------- */
+#shell { max-width: 1040px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); }
+#main { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+
+.topbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30;
+  display: flex; align-items: center; gap: 10px; padding: 10px 0;
+  background: linear-gradient(var(--bg) 82%, transparent);
+}
+.brand-m { display: flex; align-items: center; gap: 6px; font-family: var(--font-display); font-size: 18px; letter-spacing: 0.06em; }
+.mark { width: 22px; height: 22px; fill: none; stroke: var(--accent); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px var(--glow)); }
+.prodsel { flex: 1; min-width: 0; }
+.prodsel select {
+  width: 100%; min-height: 40px; background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 3px;
+  padding: 6px 10px; font: inherit; font-family: var(--font-display); font-size: 15px; font-weight: 500;
+}
+.sync { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); white-space: nowrap; font-family: var(--font-display); }
+.led { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
+.led.ok { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.led.warn { background: var(--warn); box-shadow: 0 0 8px var(--warn); animation: pulse 2.4s ease-in-out infinite; }
+.led.bad { background: var(--bad); box-shadow: 0 0 8px var(--bad); }
+@keyframes pulse { 50% { opacity: 0.45; } }
+
+#nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 35;
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px;
+  padding: 6px max(8px, env(safe-area-inset-left, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-right, 0px));
+  background: color-mix(in srgb, var(--surface) 94%, transparent); border-top: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+}
+.nav-brand { display: none; }
+#nav button {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-height: 48px; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 11.5px; font-weight: 500;
+  border-radius: 3px; cursor: pointer; padding: 4px 0;
+}
+#nav .ico { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+#nav button[aria-selected="true"] { color: var(--accent); background: var(--accent-soft); }
+#nav button[aria-selected="true"] .ico { filter: drop-shadow(0 0 5px var(--glow)); }
+.dot { position: absolute; top: 5px; right: calc(50% - 20px); width: 9px; height: 9px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 6px var(--warn); }
+
+@media (min-width: 900px) {
+  body { padding-block: 0 48px; }
+  #shell { grid-template-columns: 210px minmax(0, 1fr); gap: 28px; }
+  #nav {
+    position: sticky; top: 0; bottom: auto; left: auto; right: auto; align-self: start; height: auto; margin-top: 18px;
+    display: flex; flex-direction: column; gap: 4px; padding: 14px 10px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface); backdrop-filter: none;
+  }
+  .nav-brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 14px; margin-bottom: 6px; border-bottom: 1px solid var(--line); }
+  .nav-brand b { display: block; font-family: var(--font-display); font-size: 20px; letter-spacing: 0.08em; line-height: 1.1; }
+  .nav-brand span { font-size: 12px; color: var(--muted); }
+  #nav button { flex-direction: row; justify-content: flex-start; gap: 12px; min-height: 44px; font-size: 14.5px; padding: 0 12px; }
+  .dot { top: 50%; right: 12px; transform: translateY(-50%); }
+  .brand-m { display: none; }
+  .toast { bottom: 24px !important; }
+}
+
+/* ---------- surfaces ---------- */
+.panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card { overflow-wrap: anywhere; position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 3px; padding: 14px; min-width: 0; }
+.card.hud { border-color: color-mix(in srgb, var(--accent) 38%, var(--line)); background: linear-gradient(160deg, var(--surface), var(--surface-2)); }
+.card.hud::before, .card.hud::after { content: ""; position: absolute; width: 16px; height: 16px; border: 2px solid var(--accent); pointer-events: none; filter: drop-shadow(0 0 4px var(--glow)); }
+.card.hud::before { top: -2px; left: -2px; border-right: 0; border-bottom: 0; }
+.card.hud::after { bottom: -2px; right: -2px; border-left: 0; border-top: 0; }
+.card > summary { cursor: pointer; font-family: var(--font-display); font-weight: 600; font-size: 15px; min-height: 28px; }
+.list-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.note { border: 1px solid var(--line); border-radius: 3px; padding: 10px 12px; font-size: 13.5px; background: var(--surface-2); }
+.note.ok { border-color: var(--ok); background: var(--ok-bg); }
+.note.warn { border-color: var(--warn); background: var(--warn-bg); }
+.note.bad { border-color: var(--bad); background: var(--bad-bg); }
+.note p:last-child { margin-bottom: 0; }
+
+/* hero (overview) */
+.hero { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; align-items: center; }
+.ring { position: relative; width: 104px; height: 104px; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 6; }
+.ring .bg { stroke: var(--line); }
+.ring .fg { stroke: var(--accent); stroke-linecap: butt; filter: drop-shadow(0 0 5px var(--glow)); transition: stroke-dashoffset 0.9s cubic-bezier(.2,.7,.2,1); }
+.ring .tick { stroke: var(--surface); stroke-width: 8; }
+.ring b { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--font-display); font-size: 26px; font-weight: 600; }
+.ring b small { font-size: 12px; color: var(--muted); font-weight: 500; margin-left: 1px; }
+.hero h1 { font-size: 20px; line-height: 1.25; }
+.hero p { color: var(--muted); font-size: 14px; margin: 4px 0 0; }
+.hero .btns { margin-top: 10px; }
+@media (max-width: 420px) { .hero { grid-template-columns: minmax(0, 1fr); } .ring { margin: 0 auto; } }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 3px; padding: 10px 12px; min-width: 0; }
+.stat b { display: block; font-family: var(--font-display); font-size: 26px; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.stat span { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.stat.warn b { color: var(--warn); } .stat.bad b { color: var(--bad); } .stat.ok b { color: var(--ok); }
+@media (max-width: 520px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* checklist */
+.steps { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; }
+.steps li { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); }
+.steps li:first-child { border-top: 0; }
+.tick-ico { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; color: transparent; }
+.tick-ico svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.steps li.done .tick-ico { border-color: var(--ok); color: var(--ok); background: var(--ok-bg); }
+.steps li.next .tick-ico { border-color: var(--accent); box-shadow: 0 0 8px var(--glow); }
+.steps .t { font-weight: 500; font-size: 14.5px; } .steps li.done .t { color: var(--muted); }
+.steps .h { font-size: 12.5px; color: var(--muted); }
+
+/* ---------- forms ---------- */
+label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin: 12px 0 4px; }
+input[type="text"], input[type="date"], input[type="search"], input[type="password"], input[type="url"], textarea, select {
+  width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: 3px; background: var(--bg); color: var(--fg);
+  padding: 8px 10px; font: inherit; font-size: 16px;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+textarea { min-height: 120px; font-family: var(--font-mono); font-size: 13px; line-height: 1.45; resize: vertical; }
+textarea.short { min-height: 78px; }
+textarea.tall { min-height: 220px; }
+textarea.nowrap { white-space: pre; overflow-x: auto; }
+input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
+input[type="file"] { width: 100%; font: inherit; font-size: 14px; color: var(--muted); padding: 8px 0; }
+.check { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; font-size: 14px; color: var(--fg); font-weight: 400; }
+.row2 { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 12px; }
+@media (min-width: 560px) { .row2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+
+.btn {
+  min-height: 44px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface-2); color: var(--fg);
+  font: inherit; font-family: var(--font-display); font-weight: 500; font-size: 14.5px; letter-spacing: 0.01em; padding: 0 16px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; text-align: center;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 600; box-shadow: 0 0 14px -4px var(--glow); }
+.btn.danger { color: var(--bad); }
+.btn.danger.armed { background: var(--bad); border-color: var(--bad); color: #fff; }
+.btn.sm { min-height: 36px; font-size: 13px; padding: 0 11px; }
+.btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; margin-bottom: 4px; }
+.seg button { min-height: 42px; border: 0; background: transparent; color: var(--muted); font: inherit; font-family: var(--font-display); font-weight: 500; font-size: 14px; cursor: pointer; }
+.seg button.on { background: var(--accent-soft); color: var(--accent); }
+.seg.n4 { grid-template-columns: repeat(4, 1fr); }
+.seg.n4 button { font-size: 13px; padding: 0 4px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.chip { min-height: 36px; padding: 0 12px; border-radius: 3px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); font: inherit; font-size: 13.5px; cursor: pointer; }
+.chip.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+/* ---------- list strips ---------- */
+.strips { display: flex; flex-direction: column; margin-top: 10px; }
+.strip { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 12px 0; border-top: 1px solid var(--line); }
+.strip:first-child { border-top: 0; }
+.strip .l1 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.strip .lbl { font-family: var(--font-display); font-weight: 600; font-size: 16px; overflow-wrap: anywhere; }
+.strip .meta { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.strip .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; padding: 1px 9px; border-radius: 2px; border: 1px solid currentColor; }
+.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.pill.ok { color: var(--ok); background: var(--ok-bg); } .pill.warn { color: var(--warn); background: var(--warn-bg); } .pill.bad { color: var(--bad); background: var(--bad-bg); }
+.empty { text-align: center; padding: 22px 8px; color: var(--muted); }
+
+/* ---------- publish / build / config ---------- */
+.kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; font-size: 13.5px; margin: 8px 0; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; overflow-wrap: anywhere; }
+.prod { padding: 14px 0; border-top: 1px solid var(--line); }
+.prod:first-of-type { border-top: 0; padding-top: 4px; }
+.prod .ph { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.prod .ph b { font-family: var(--font-display); font-size: 16px; }
+.keybox { font-family: var(--font-mono); font-size: 12.5px; background: var(--bg); border: 1px dashed var(--line); border-radius: 3px; padding: 8px 10px; overflow-wrap: anywhere; margin-top: 8px; }
+
+/* manual */
+.manual { font-size: 15px; }
+.manual h2 { margin-top: 4px; }
+.manual ol, .manual ul { margin: 6px 0 10px; padding-left: 22px; }
+.manual li { margin: 4px 0; }
+.manual .codeblk { position: relative; margin: 8px 0 12px; }
+.manual pre { margin: 0; padding: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 3px; overflow-x: auto; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; }
+.manual .codeblk .btn { position: absolute; top: 6px; right: 6px; min-height: 30px; font-size: 12px; padding: 0 9px; }
+.tablewrap { overflow-x: auto; margin: 8px 0 12px; border: 1px solid var(--line); border-radius: 3px; }
+.tablewrap table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 13.5px; }
+.tablewrap th, .tablewrap td { text-align: left; padding: 8px 10px; border-top: 1px solid var(--line); vertical-align: top; }
+.tablewrap th { border-top: 0; background: var(--surface-2); font-family: var(--font-display); font-weight: 600; }
+.badge { display: inline-block; font-family: var(--font-display); font-size: 12px; padding: 0 7px; border: 1px solid var(--accent); color: var(--accent); border-radius: 2px; margin-right: 6px; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(var(--nav-h) + 18px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 12px);
+  max-width: min(92vw, 460px); padding: 10px 16px; border-radius: 3px; background: var(--fg); color: var(--bg); font-size: 14px;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 60;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.bad { background: var(--bad); color: #1b0b09; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-home" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.2"/><path d="M12 12 19 6.5"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.6 2.7-6 6-6s6 2.4 6 6"/><circle cx="17.2" cy="9" r="2.3"/><path d="M17.2 14.2c2.3.3 3.8 2.2 3.8 5.3"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M7 18a4 4 0 0 1-.4-8 5.6 5.6 0 0 1 10.8 1.4A3.4 3.4 0 0 1 17 18"/><path d="M12 20v-8M8.8 14.8 12 11.6l3.2 3.2"/></symbol>
+    <symbol id="i-chip" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="1.5"/><path d="M9.5 3v3.5M14.5 3v3.5M9.5 17.5V21M14.5 17.5V21M3 9.5h3.5M3 14.5h3.5M17.5 9.5H21M17.5 14.5H21"/><rect x="10" y="10" width="4" height="4"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v15H5.5A1.5 1.5 0 0 0 4 20.5z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v15h5.5a1.5 1.5 0 0 1 1.5 1.5z"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v3M15.5 12v2"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  </defs>
+</svg>
+
+<div id="shell">
+  <nav id="nav" aria-label="เมนูหลัก">
+    <div class="nav-brand">
+      <svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-key"/></svg>
+      <div><b>PKTL</b><span>License Manager</span></div>
+    </div>
+    <button type="button" data-tab="home" aria-selected="true"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-home"/></svg><span>ภาพรวม</span></button>
+    <button type="button" data-tab="customers" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-users"/></svg><span>ลูกค้า</span></button>
+    <button type="button" data-tab="publish" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-send"/></svg><span>เผยแพร่</span><i class="dot" id="dotPub" hidden></i></button>
+    <button type="button" data-tab="build" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-chip"/></svg><span>สร้าง EA</span></button>
+    <button type="button" data-tab="guide" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-book"/></svg><span>คู่มือ</span></button>
+    <button type="button" data-tab="config" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-gear"/></svg><span>ตั้งค่า</span></button>
+  </nav>
+
+  <main id="main">
+    <header class="topbar">
+      <div class="brand-m"><svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-key"/></svg><b>PKTL</b></div>
+      <label class="prodsel" for="prodSel"><span class="sr">ผลิตภัณฑ์ (EA)</span><select id="prodSel" aria-label="ผลิตภัณฑ์ (EA)"></select></label>
+      <div class="sync" id="syncLed" role="status"></div>
+    </header>
+    <div id="banner"></div>
+
+    <section class="panel" id="p-home" data-panel="home"></section>
+
+    <section class="panel" id="p-customers" data-panel="customers" hidden>
+      <div class="card" id="formCard">
+        <h2 id="formTitle">เพิ่มลูกค้า</h2>
+        <div class="seg" role="group" aria-label="วิธีเพิ่ม">
+          <button type="button" data-mode="id" class="on">มี ID แล้ว</button>
+          <button type="button" data-mode="acct">กรอกข้อมูลบัญชี</button>
+        </div>
+        <div id="modeId">
+          <label for="fId">ID ของลูกค้า (วางบรรทัด License ID ทั้งบรรทัดจาก Experts ได้เลย)</label>
+          <textarea id="fId" class="short" spellcheck="false" autocomplete="off" placeholder="License ID: 3f9a…  (login 1234567 | FTMO Global Markets Ltd | FTMO-Server3)"></textarea>
+        </div>
+        <div id="modeAcct" hidden>
+          <div class="row2">
+            <div><label for="fLogin">เลขบัญชี (login)</label><input type="text" id="fLogin" inputmode="numeric" autocomplete="off" placeholder="1234567"></div>
+            <div><label for="fServer">เซิร์ฟเวอร์</label><input type="text" id="fServer" autocomplete="off" placeholder="FTMO-Server3"></div>
+          </div>
+          <label for="fCompany">ชื่อบริษัทโบรกเกอร์ (ตามที่ MT5 แสดง)</label>
+          <input type="text" id="fCompany" autocomplete="off" placeholder="FTMO Global Markets Ltd">
+          <p class="small muted" id="acctId" style="margin-top:8px"></p>
+        </div>
+        <div class="row2">
+          <div><label for="fLabel">รหัสลูกค้า (อังกฤษ/ตัวเลข ไม่ใส่ ; )</label><input type="text" id="fLabel" autocomplete="off" maxlength="40" placeholder="c001"></div>
+          <div><label for="fNote">บันทึกส่วนตัว (ไม่ถูกส่งขึ้น GitHub)</label><input type="text" id="fNote" autocomplete="off" maxlength="120" placeholder="ชื่อ / ช่องทางติดต่อ"></div>
+        </div>
+        <label for="fDate">วันหมดอายุ (ใช้ได้ถึงสิ้นวันนี้)</label>
+        <input type="date" id="fDate">
+        <div class="chips" aria-label="ทางลัดวันหมดอายุ">
+          <button type="button" class="chip" data-days="30">+30 วัน</button>
+          <button type="button" class="chip" data-days="90">+90 วัน</button>
+          <button type="button" class="chip" data-days="180">+180 วัน</button>
+          <button type="button" class="chip" data-days="365">+1 ปี</button>
+        </div>
+        <label class="check"><input type="checkbox" id="fNever"> ไม่มีวันหมดอายุ</label>
+        <div class="btns">
+          <button type="button" class="btn primary" id="btnAdd">เพิ่มรายการ</button>
+          <button type="button" class="btn" id="btnCancelEdit" hidden>ยกเลิกการแก้ไข</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="list-head">
+          <h2>รายชื่อลูกค้า</h2>
+          <span class="muted small" id="custCount"></span>
+        </div>
+        <label class="sr" for="fSearch">ค้นหา</label>
+        <input type="search" id="fSearch" placeholder="ค้นหารหัสลูกค้า / ID / บันทึก" autocomplete="off">
+        <div class="chips" id="custFilters">
+          <button type="button" class="chip on" data-filter="all">ทั้งหมด</button>
+          <button type="button" class="chip" data-filter="ok">ใช้งานอยู่</button>
+          <button type="button" class="chip" data-filter="warn">ใกล้หมด</button>
+          <button type="button" class="chip" data-filter="bad">หมดอายุ</button>
+        </div>
+        <div id="custList" class="strips"></div>
+      </div>
+
+      <details class="card">
+        <summary>นำเข้ารายชื่อจากไฟล์ licenses.txt เดิม</summary>
+        <p class="small muted" style="margin-top:8px">วางข้อความทั้งไฟล์ แอปจะเพิ่มหรืออัปเดตรายการให้ผลิตภัณฑ์ที่เลือกอยู่</p>
+        <textarea id="impText" spellcheck="false" placeholder="# …&#10;3f9a…;2026.12.05;c001&#10;SIG;…"></textarea>
+        <div class="btns"><button type="button" class="btn" id="btnImp">นำเข้า</button></div>
+        <div id="impResult" style="margin-top:10px"></div>
+      </details>
+    </section>
+
+    <section class="panel" id="p-publish" data-panel="publish" hidden></section>
+
+    <section class="panel" id="p-build" data-panel="build" hidden>
+      <div class="card">
+        <h2>สร้างไฟล์ EA ที่ฝังกุญแจ</h2>
+        <p class="small muted" id="buildFor"></p>
+        <label for="srcFile">เลือกไฟล์ .mq5 ต้นฉบับ หรือวางโค้ดด้านล่าง</label>
+        <input type="file" id="srcFile" accept=".mq5,.mqh,.txt,text/plain">
+        <label for="srcText">โค้ด EA ต้นฉบับ (ตัวที่มีบล็อก LIC_* / PKTL_LIC_*)</label>
+        <textarea id="srcText" class="nowrap tall" spellcheck="false" placeholder="วางโค้ด .mq5 ทั้งไฟล์ที่นี่"></textarea>
+        <div class="btns"><button type="button" class="btn primary" id="btnBuild">สร้างไฟล์ Release</button></div>
+        <div id="buildOut" style="margin-top:12px"></div>
+      </div>
+      <div class="card" id="chkCard">
+        <h2>ตรวจว่ากุญแจตรงกับ EA ที่รันอยู่</h2>
+        <p class="small muted">ใน MT5 เปิดแท็บ Experts คลิกบรรทัดที่มีคำว่า <span class="mono">License ID:</span> กด Ctrl+C แล้ววางที่นี่</p>
+        <label class="sr" for="chkText">บรรทัด License ID</label>
+        <textarea id="chkText" class="short" spellcheck="false" placeholder="วางบรรทัด License ID: … (login … | … | …)"></textarea>
+        <div class="btns"><button type="button" class="btn primary" id="btnChk">ตรวจ</button></div>
+        <div id="chkResult" style="margin-top:10px"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="p-guide" data-panel="guide" hidden></section>
+    <section class="panel" id="p-config" data-panel="config" hidden></section>
+  </main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+'use strict';
+/* ---- 00-core.js ---- */
+/* =====================================================================
+   00-core.js  -  pure logic (no DOM, no storage). Safe to unit-test.
+   License file format (must stay identical to the EA and the Python tool):
+     # <header comment>
+     <64-hex id>;<YYYY.MM.DD|never>[;<ascii label>]
+     SIG;sha256(SECRET + "\n" + all lines above joined by "\n")
+   ID = sha256(SALT|login|company.trim().lower()|server.trim().lower())
+   ===================================================================== */
+var Core = (function () {
+  'use strict';
+
+  /* ---------- SHA-256 (verified against Node crypto) ---------- */
+  var SHA_K = new Int32Array(64), SHA_H0 = new Int32Array(8);
+  (function () {
+    var n = 2, c = 0;
+    var frac = function (x) { return ((x - Math.floor(x)) * 4294967296) | 0; };
+    var isPrime = function (v) { for (var i = 2; i * i <= v; i++) if (v % i === 0) return false; return true; };
+    while (c < 64) {
+      if (isPrime(n)) { if (c < 8) SHA_H0[c] = frac(Math.pow(n, 1 / 2)); SHA_K[c] = frac(Math.pow(n, 1 / 3)); c++; }
+      n++;
+    }
+  })();
+  function sha256Hex(str) {
+    var bytes = new TextEncoder().encode(str), l = bytes.length;
+    var padLen = ((l + 9 + 63) >> 6) << 6;
+    var buf = new Uint8Array(padLen); buf.set(bytes); buf[l] = 0x80;
+    var dv = new DataView(buf.buffer);
+    dv.setUint32(padLen - 8, Math.floor(l / 0x20000000)); dv.setUint32(padLen - 4, (l << 3) >>> 0);
+    var h = Array.prototype.slice.call(SHA_H0), w = new Int32Array(64);
+    for (var o = 0; o < padLen; o += 64) {
+      var i;
+      for (i = 0; i < 16; i++) w[i] = dv.getInt32(o + i * 4);
+      for (i = 16; i < 64; i++) {
+        var a15 = w[i - 15], a2 = w[i - 2];
+        var s0 = ((a15 >>> 7) | (a15 << 25)) ^ ((a15 >>> 18) | (a15 << 14)) ^ (a15 >>> 3);
+        var s1 = ((a2 >>> 17) | (a2 << 15)) ^ ((a2 >>> 19) | (a2 << 13)) ^ (a2 >>> 10);
+        w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0;
+      }
+      var a = h[0], b = h[1], c = h[2], d = h[3], e = h[4], f = h[5], g = h[6], hh = h[7];
+      for (i = 0; i < 64; i++) {
+        var S1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
+        var ch = (e & f) ^ (~e & g);
+        var t1 = (hh + S1 + ch + SHA_K[i] + w[i]) | 0;
+        var S0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
+        var mj = (a & b) ^ (a & c) ^ (b & c);
+        var t2 = (S0 + mj) | 0;
+        hh = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+      }
+      h[0] = (h[0] + a) | 0; h[1] = (h[1] + b) | 0; h[2] = (h[2] + c) | 0; h[3] = (h[3] + d) | 0;
+      h[4] = (h[4] + e) | 0; h[5] = (h[5] + f) | 0; h[6] = (h[6] + g) | 0; h[7] = (h[7] + hh) | 0;
+    }
+    return h.map(function (x) { return (x >>> 0).toString(16).padStart(8, '0'); }).join('');
+  }
+
+  /* ---------- validation ---------- */
+  var ID_RE = /^[0-9a-f]{64}$/;
+  var DATE_RE = /^\d{4}\.\d{2}\.\d{2}$/;
+  var KEY_RE = /^PKTL1:([A-Za-z0-9]{12,64}):([A-Za-z0-9]{16,64})$/;
+
+  function validDate(s) {
+    if (!DATE_RE.test(s)) return false;
+    var p = s.split('.').map(Number), d = new Date(p[0], p[1] - 1, p[2]);
+    return d.getFullYear() === p[0] && d.getMonth() === p[1] - 1 && d.getDate() === p[2];
+  }
+  function validLabel(s) { return /^[\x20-\x7e]*$/.test(s) && s.indexOf(';') < 0 && s.charAt(0) !== '#'; }
+  function asciiName(n) { return String(n || '').replace(/[^\x20-\x7e]/g, '').replace(/;/g, ',').trim(); }
+  function headerOf(p) { return '# ' + (asciiName(p.name) || p.id) + ' licenses'; }
+
+  /* ---------- dates ---------- */
+  function dotDate(d) { return d.getFullYear() + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getDate()).padStart(2, '0'); }
+  function parseDot(s) { var p = s.split('.').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+  function today() { var n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
+  function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+  function statusOf(r) {
+    if (r.exp === 'never') return { k: 'ok', t: 'ไม่มีวันหมดอายุ', days: null };
+    var days = Math.round((parseDot(r.exp) - today()) / 864e5);
+    if (days < 0) return { k: 'bad', t: 'หมดอายุแล้ว', days: days };
+    if (days <= 7) return { k: 'warn', t: 'ใกล้หมด', days: days };
+    return { k: 'ok', t: 'ใช้งานอยู่', days: days };
+  }
+  /* renew from the later of today and the current expiry */
+  function renewExp(r, n) {
+    if (r.exp === 'never') return 'never';
+    var base = parseDot(r.exp), t = today();
+    if (base < t) base = t;
+    return dotDate(addDays(base, n));
+  }
+
+  /* ---------- ids / files ---------- */
+  function idFor(keys, login, company, server) {
+    return sha256Hex(keys.salt + '|' + String(login).trim() + '|' + String(company).trim().toLowerCase() + '|' + String(server).trim().toLowerCase());
+  }
+  function lineOf(r) { return r.id + ';' + r.exp + (r.label ? ';' + r.label : ''); }
+  function sortRows(rows) { return rows.slice().sort(function (a, b) { return (a.t || 0) - (b.t || 0) || (a.id < b.id ? -1 : 1); }); }
+  function buildFile(rows, secret, header) {
+    var canon = [header].concat(sortRows(rows).map(lineOf)).join('\n');
+    return canon + '\nSIG;' + sha256Hex(secret + '\n' + canon) + '\n';
+  }
+  function sigOfText(text) { var m = /\nSIG;([0-9a-f]{64})\s*$/.exec(text); return m ? m[1] : ''; }
+  function parseList(text) {
+    var lines = [], rows = [], bad = 0, sig = null;
+    var all = text.replace(/^﻿/, '').split(/\r?\n/);
+    for (var i = 0; i < all.length; i++) {
+      var ln = all[i].trim();
+      if (!ln) continue;
+      if (ln.indexOf('SIG;') === 0) { sig = ln.slice(4).trim().toLowerCase(); break; }
+      lines.push(ln);
+      if (ln.charAt(0) === '#') continue;
+      var p = ln.split(';').map(function (x) { return x.trim(); });
+      var id = (p[0] || '').toLowerCase(), exp = (p[1] || '').toLowerCase(), label = p[2] || '';
+      if (ID_RE.test(id) && (exp === 'never' || validDate(exp)) && validLabel(label)) rows.push({ id: id, exp: exp, label: label });
+      else bad++;
+    }
+    return { rows: rows, bad: bad, sig: sig, lines: lines };
+  }
+  function sigValid(parsed, secret) { return !!parsed.sig && sha256Hex(secret + '\n' + parsed.lines.join('\n')) === parsed.sig; }
+
+  /* ---------- EA source patching ---------- */
+  var DEFINES = ['ENABLED', 'URL', 'SALT', 'SECRET'];
+  /* works with both families:  LIC_X  (PKTL NY Prop v1.20)  and  PKTL_LIC_X  (PKTL_License.mqh) */
+  function patchEA(text, keys, url) {
+    var vals = { ENABLED: 'true', URL: '"' + url + '"', SALT: '"' + keys.salt + '"', SECRET: '"' + keys.secret + '"' };
+    var out = text, changed = [];
+    for (var i = 0; i < DEFINES.length; i++) {
+      var name = DEFINES[i];
+      var re = new RegExp('^(#define[ \\t]+(?:PKTL_)?LIC_' + name + '[ \\t]+)[^\\r\\n]*', 'gm');
+      var n = (out.match(re) || []).length;
+      if (n !== 1) return { error: 'ต้องมีบรรทัด #define LIC_' + name + ' (หรือ PKTL_LIC_' + name + ') อยู่ 1 บรรทัดพอดี แต่พบ ' + n + ' บรรทัด — ตรวจว่าเป็นไฟล์ต้นฉบับที่มีบล็อกลิขสิทธิ์', name: name, found: n };
+      (function (v, nm) { out = out.replace(re, function (m, pre) { changed.push(nm); return pre + v; }); })(vals[name], name);
+    }
+    return { text: out, url: url, changed: changed };
+  }
+  function decodeBytes(buf) {
+    var u = new Uint8Array(buf);
+    if (u[0] === 0xFF && u[1] === 0xFE) return new TextDecoder('utf-16le').decode(u.subarray(2));
+    if (u[0] === 0xFE && u[1] === 0xFF) return new TextDecoder('utf-16be').decode(u.subarray(2));
+    return new TextDecoder('utf-8').decode(u);
+  }
+
+  /* ---------- keys ---------- */
+  function hex(n) {
+    var a = new Uint8Array(n); crypto.getRandomValues(a);
+    return Array.prototype.map.call(a, function (x) { return x.toString(16).padStart(2, '0'); }).join('');
+  }
+  function newKeys() { return { salt: hex(12), secret: hex(16) }; }
+  function keyCode(k) { return 'PKTL1:' + k.salt + ':' + k.secret; }
+  function parseKeyCode(s) { var m = KEY_RE.exec(String(s).trim()); return m ? { salt: m[1], secret: m[2] } : null; }
+  function fingerprint(k) { return sha256Hex('fp|' + k.salt + '|' + k.secret).slice(0, 6); }
+
+  /* ---------- input helpers ---------- */
+  /* accepts a bare ID or a whole copied Experts-log line containing one 64-char ID */
+  function pickId(raw) {
+    var runs = String(raw).match(/[0-9a-fA-F]{64,}/g) || [];
+    var exact = runs.filter(function (r) { return r.length === 64; });
+    if (exact.length === 1) return exact[0].toLowerCase();
+    return String(raw).trim().toLowerCase();
+  }
+  function parseEaLine(text) {
+    var lines = String(text).split(/\r?\n/), ln = null, i;
+    for (i = 0; i < lines.length; i++) if (lines[i].indexOf('License ID') >= 0) ln = lines[i];
+    if (!ln) ln = String(text);
+    var idm = ln.match(/[0-9a-fA-F]{64}/);
+    var p = ln.lastIndexOf('(login');
+    if (!idm || p < 0) return null;
+    var inner = ln.slice(p + 6), q = inner.lastIndexOf(')');
+    if (q >= 0) inner = inner.slice(0, q);
+    var parts = inner.split('|');
+    if (parts.length < 3) return null;
+    return { id: idm[0].toLowerCase(), login: parts[0].trim(), company: parts.slice(1, -1).join('|').trim(), server: parts[parts.length - 1].trim() };
+  }
+  function slug(s) { var t = asciiName(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); return t || 'ea'; }
+  function rawUrl(cfg, file) { return 'https://raw.githubusercontent.com/' + cfg.user + '/' + cfg.repo + '/' + cfg.branch + '/' + file; }
+
+  /* ---------- base64 (UTF-8 safe) ---------- */
+  function toB64(str) {
+    var b = new TextEncoder().encode(str), s = '';
+    for (var i = 0; i < b.length; i += 8192) s += String.fromCharCode.apply(null, b.subarray(i, i + 8192));
+    return btoa(s);
+  }
+  function fromB64(b64) {
+    var s = atob(String(b64).replace(/\s+/g, '')), u = new Uint8Array(s.length);
+    for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i);
+    return new TextDecoder().decode(u);
+  }
+
+  return {
+    sha256Hex: sha256Hex, ID_RE: ID_RE, KEY_RE: KEY_RE, validDate: validDate, validLabel: validLabel, asciiName: asciiName, headerOf: headerOf,
+    dotDate: dotDate, parseDot: parseDot, today: today, addDays: addDays, statusOf: statusOf, renewExp: renewExp,
+    idFor: idFor, lineOf: lineOf, sortRows: sortRows, buildFile: buildFile, sigOfText: sigOfText, parseList: parseList, sigValid: sigValid,
+    patchEA: patchEA, decodeBytes: decodeBytes, hex: hex, newKeys: newKeys, keyCode: keyCode, parseKeyCode: parseKeyCode, fingerprint: fingerprint,
+    pickId: pickId, parseEaLine: parseEaLine, slug: slug, rawUrl: rawUrl, toB64: toB64, fromB64: fromB64
+  };
+})();
+
+/* ---- 10-state.js ---- */
+/* =====================================================================
+   10-state.js  -  app state, persistence (localStorage), selectors, mutations, event bus
+   Everything lives in one JSON object S (key "pktl2.state"). The GitHub token is stored
+   separately ("pktl2.token") so that backups never contain it.
+   ===================================================================== */
+var TARGET = 'pwa';          // 'pwa' | 'file' | 'artifact'  (replaced by build.mjs)
+var APP_VERSION = '2.0.0';
+var BUILD_ID = 'c5671c82';
+var CAN_NET = TARGET !== 'artifact'; // artifact CSP blocks fetch to other hosts
+
+var LS_KEY = 'pktl2.state', LS_TOKEN = 'pktl2.token';
+var storageOk = true, memStore = {};
+function lsGet(k) { try { var v = localStorage.getItem(k); return v === null ? (memStore[k] || null) : v; } catch (e) { storageOk = false; return memStore[k] || null; } }
+function lsSet(k, v) { memStore[k] = v; try { localStorage.setItem(k, v); } catch (e) { storageOk = false; } }
+function lsDel(k) { delete memStore[k]; try { localStorage.removeItem(k); } catch (e) { storageOk = false; } }
+function readJson(k, fb) { try { var v = lsGet(k); return v ? JSON.parse(v) : fb; } catch (e) { return fb; } }
+
+var S = null;                     // persisted state
+var T = { tab: 'home', guideTab: 'use', armed: null, reveal: {}, editing: null, formMode: 'id', filter: 'all', q: '', buildOut: null, pubBusy: false, pubMsg: null, liveMsg: null, cfgMsg: null, fileSrc: '' }; // transient UI state
+
+function defaultState() {
+  return {
+    v: 2, cur: '', products: [], rows: {}, done: {}, pub: {}, built: {},
+    cfg: { user: 'TJG-Pk', repo: 'pktl-lic', branch: 'main' },
+    hooks: { webhook: '', bridge: false, origin: '' },
+    ui: { theme: 'auto' }
+  };
+}
+function normalize(st) {
+  var d = defaultState();
+  st = (st && typeof st === 'object') ? st : {};
+  var out = {
+    v: 2,
+    cur: typeof st.cur === 'string' ? st.cur : '',
+    products: Array.isArray(st.products) ? st.products.filter(function (p) { return p && p.id && typeof p.salt === 'string' && typeof p.secret === 'string'; }) : [],
+    rows: st.rows && typeof st.rows === 'object' ? st.rows : {},
+    done: st.done && typeof st.done === 'object' ? st.done : {},
+    pub: st.pub && typeof st.pub === 'object' ? st.pub : {},
+    built: st.built && typeof st.built === 'object' ? st.built : {},
+    cfg: Object.assign({}, d.cfg, st.cfg || {}),
+    hooks: Object.assign({}, d.hooks, st.hooks || {}),
+    ui: Object.assign({}, d.ui, st.ui || {})
+  };
+  out.products.forEach(function (p) {
+    p.name = String(p.name || p.id); p.file = String(p.file || 'licenses.txt');
+    if (!Array.isArray(out.rows[p.id])) out.rows[p.id] = [];
+    out.rows[p.id] = out.rows[p.id].filter(function (r) { return r && Core.ID_RE.test(r.id) && (r.exp === 'never' || Core.validDate(r.exp)); });
+    if (!out.done[p.id]) out.done[p.id] = {};
+  });
+  if (!out.products.some(function (p) { return p.id === out.cur; })) out.cur = out.products.length ? out.products[0].id : '';
+  return out;
+}
+
+/* ---------- migration from the single-product v1 app (same origin, keys pktl.*) ---------- */
+function migrateV1() {
+  var k = readJson('pktl.keys', null);
+  if (!k || typeof k.salt !== 'string' || typeof k.secret !== 'string') return null;
+  var st = defaultState();
+  var cfg = readJson('pktl.cfg', null);
+  if (cfg) ['user', 'repo', 'branch'].forEach(function (x) { if (typeof cfg[x] === 'string' && cfg[x]) st.cfg[x] = cfg[x]; });
+  var id = 'p1';
+  st.products.push({ id: id, name: 'PKTL NY Prop v1', file: 'licenses.txt', salt: k.salt, secret: k.secret, created: Date.now() });
+  st.cur = id;
+  var rows = readJson('pktl.rows', []);
+  st.rows[id] = (Array.isArray(rows) ? rows : []).map(function (r) { return { id: r.id, exp: r.exp, label: r.label || '', note: '', t: r.t || Date.now() }; });
+  var d = readJson('pktl.done', {}) || {};
+  st.done[id] = { compile: !!(d.compile && d.web), demo: !!d.demo };
+  if (readJson('pktl.built', null)) st.built[id] = { fp: Core.fingerprint(k), t: Date.now() };
+  var last = lsGet('pktl.last');
+  var p = st.products[0];
+  if (last) st.pub[id] = { hash: Core.sha256Hex(last), t: Date.now(), via: 'v1' };
+  st = normalize(st);
+  return st;
+}
+
+function load() {
+  var raw = readJson(LS_KEY, null), migrated = false;
+  if (raw) S = normalize(raw);
+  else {
+    var m = migrateV1();
+    if (m) { S = m; migrated = true; save(); }
+    else S = normalize(defaultState());
+  }
+  return migrated;
+}
+function save() { lsSet(LS_KEY, JSON.stringify(S)); }
+function getToken() { return lsGet(LS_TOKEN) || ''; }
+
+/* ---------- event bus ---------- */
+var listeners = {};
+function on(ev, fn) { (listeners[ev] = listeners[ev] || []).push(fn); return function () { off(ev, fn); }; }
+function off(ev, fn) { listeners[ev] = (listeners[ev] || []).filter(function (f) { return f !== fn; }); }
+function emit(ev, data) {
+  var p = data && data.product ? prodById(data.product) : null;
+  var pl = { app: 'pktl-license-manager', v: 2, event: ev, at: new Date().toISOString(), product: p ? { id: p.id, name: p.name } : null, data: data || {} };
+  (listeners[ev] || []).concat(listeners['*'] || []).forEach(function (f) { try { f(pl); } catch (e) { /* listener errors never break the app */ } });
+  if (typeof outbound === 'function') outbound(pl);
+}
+
+/* ---------- selectors ---------- */
+function prodById(id) { for (var i = 0; i < S.products.length; i++) if (S.products[i].id === id) return S.products[i]; return null; }
+function curProd() { return prodById(S.cur); }
+function rowsOf(pid) { return S.rows[pid] || []; }
+function fileOf(p) { return Core.buildFile(rowsOf(p.id), p.secret, Core.headerOf(p)); }
+function fileHash(p) { return Core.sha256Hex(fileOf(p)); }
+function isPublished(p) { var x = S.pub[p.id]; return !!x && x.hash === fileHash(p); }
+function isPending(p) { return !isPublished(p); }
+function rawUrlOf(p) { return Core.rawUrl(S.cfg, p.file); }
+function cfgOk() { return /^[A-Za-z0-9_.-]+$/.test(S.cfg.user) && /^[A-Za-z0-9_.-]+$/.test(S.cfg.repo) && /^[A-Za-z0-9_.\/-]+$/.test(S.cfg.branch); }
+function stats(p) {
+  var s = { total: 0, active: 0, soon: 0, bad: 0 };
+  rowsOf(p.id).forEach(function (r) { var st = Core.statusOf(r); s.total++; if (st.k === 'bad') s.bad++; else if (st.k === 'warn') s.soon++; else s.active++; });
+  return s;
+}
+/* setup checklist for one product */
+function stepsOf(p) {
+  var d = S.done[p.id] || {};
+  var hasRows = rowsOf(p.id).length > 0;
+  return [
+    { k: 'keys', t: 'สร้างกุญแจ', hint: 'สร้างให้อัตโนมัติตอนเพิ่มผลิตภัณฑ์', done: !!(p.salt && p.secret), go: 'config' },
+    { k: 'repo', t: 'ตั้งค่า GitHub', hint: 'ใส่ชื่อผู้ใช้ ชื่อ repo และ branch', done: cfgOk() && !!S.cfg.user && !!S.cfg.repo, go: 'config' },
+    { k: 'build', t: 'สร้างไฟล์ EA ที่ฝังกุญแจ', hint: 'วางโค้ด .mq5 แล้วกดสร้าง', done: !!S.built[p.id], go: 'build' },
+    { k: 'compile', t: 'คอมไพล์ EA และเปิด Allow WebRequest', hint: 'ทำใน MetaEditor / MT5 ดูวิธีในคู่มือ', done: !!d.compile, manual: true, go: 'guide' },
+    { k: 'customer', t: 'เพิ่มลูกค้ารายแรก', hint: 'ใช้บัญชีเดโมของคุณเองก่อนก็ได้', done: hasRows, go: 'customers' },
+    { k: 'publish', t: 'เผยแพร่รายชื่อ', hint: 'ส่งไฟล์ที่เซ็นแล้วขึ้น GitHub', done: hasRows && isPublished(p), go: 'publish' },
+    { k: 'demo', t: 'ทดสอบบนเดโม ต้องเห็น License OK', hint: 'ลาก EA ลงชาร์ตแล้วดูแท็บ Experts', done: !!d.demo, manual: true, go: 'guide' }
+  ];
+}
+
+/* ---------- mutations (UI and the public API both go through these) ---------- */
+function uid() { return 'p' + Date.now().toString(36) + Core.hex(2); }
+function addProduct(name, keys) {
+  name = String(name || '').trim();
+  if (!name) throw new Error('ใส่ชื่อผลิตภัณฑ์ (ชื่อ EA)');
+  var n = S.products.length, file = n === 0 ? 'licenses.txt' : 'licenses-' + Core.slug(name) + '.txt';
+  while (S.products.some(function (p) { return p.file === file; })) file = file.replace(/\.txt$/, '') + '-2.txt';
+  var k = keys || Core.newKeys();
+  var p = { id: uid(), name: name, file: file, salt: k.salt, secret: k.secret, created: Date.now() };
+  S.products.push(p); S.rows[p.id] = []; S.done[p.id] = {}; S.cur = p.id;
+  save(); emit('product.added', { product: p.id });
+  return p;
+}
+function removeProduct(id) {
+  S.products = S.products.filter(function (p) { return p.id !== id; });
+  delete S.rows[id]; delete S.done[id]; delete S.pub[id]; delete S.built[id];
+  if (S.cur === id) S.cur = S.products.length ? S.products[0].id : '';
+  save(); emit('product.removed', { product: id });
+}
+function setKeys(p, keys, reason) {
+  p.salt = keys.salt; p.secret = keys.secret;
+  delete S.pub[p.id]; delete S.built[p.id];
+  save(); emit('product.keys', { product: p.id, reason: reason });
+}
+/* row: {id, exp, label, note, acct?}  -> returns 'added' | 'updated' */
+function putRow(pid, row) {
+  var list = rowsOf(pid), i;
+  for (i = 0; i < list.length; i++) if (list[i].id === row.id) break;
+  var existed = i < list.length;
+  if (existed) list[i] = Object.assign({}, list[i], row);
+  else list.push(Object.assign({ t: Date.now() }, row));
+  S.rows[pid] = list; save();
+  emit(existed ? 'customer.updated' : 'customer.added', { product: pid, id: row.id, exp: row.exp, label: row.label || '' });
+  return existed ? 'updated' : 'added';
+}
+function delRow(pid, id) {
+  var r = rowsOf(pid).filter(function (x) { return x.id === id; })[0];
+  S.rows[pid] = rowsOf(pid).filter(function (x) { return x.id !== id; });
+  save(); emit('customer.removed', { product: pid, id: id, label: r ? r.label : '' });
+}
+function markPublished(p, via) {
+  S.pub[p.id] = { hash: fileHash(p), t: Date.now(), via: via };
+  save(); emit('file.published', { product: p.id, via: via, count: rowsOf(p.id).length });
+}
+
+/* ---------- backup ---------- */
+function backupCode() { return 'PKTLBK1:' + Core.toB64(JSON.stringify(S)); }
+function parseBackup(text) {
+  text = String(text).trim();
+  try {
+    if (text.indexOf('PKTLBK1:') === 0) return normalize(JSON.parse(Core.fromB64(text.slice(8))));
+    if (text.charAt(0) === '{') return normalize(JSON.parse(text));
+  } catch (e) { /* fall through */ }
+  return null;
+}
+
+/* ---- 20-platform.js ---- */
+/* =====================================================================
+   20-platform.js  -  everything that talks to the outside world:
+   clipboard, file save, GitHub API, webhook, postMessage bridge, public API (window.PKTL)
+   ===================================================================== */
+var $ = function (s, r) { return (r || document).querySelector(s); };
+var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+var toastTimer;
+function toast(msg, bad) {
+  var t = $('#toast'); if (!t) return;
+  t.textContent = msg; t.className = 'toast show' + (bad ? ' bad' : '');
+  clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.className = 'toast'; }, 3400);
+}
+
+/* ---------- clipboard ---------- */
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', '');
+  ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0'; document.body.appendChild(ta); ta.select();
+  var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  ta.remove(); return ok;
+}
+function copyText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return fallbackCopy(text); });
+  }
+  return Promise.resolve(fallbackCopy(text));
+}
+
+/* ---------- file save ---------- */
+/* .mq5 is not an allowed download type inside the claude.ai artifact -> ".mq5.txt" there */
+function eaFilename(name) { return TARGET === 'artifact' ? name + '.txt' : name; }
+function saveFile(filename, text, mime) {
+  if (TARGET === 'artifact') {
+    return Promise.resolve().then(function () { return window.claude && window.claude.use ? window.claude.use('downloads') : null; })
+      .then(function (dl) {
+        if (!dl) return 'unavailable';
+        return dl.save({ filename: filename, data: text }).then(function () { return 'saved'; }, function (e) { return e && e.code === 'declined' ? 'declined' : 'unavailable'; });
+      }, function () { return 'unavailable'; });
+  }
+  try {
+    var blob = new Blob([text], { type: (mime || 'text/plain') + ';charset=utf-8' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.rel = 'noopener';
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    return Promise.resolve('saved');
+  } catch (e) { return Promise.resolve('unavailable'); }
+}
+
+/* ---------- theme (the claude.ai viewer sets data-theme itself) ---------- */
+function applyTheme() {
+  if (TARGET === 'artifact') return;
+  var r = document.documentElement, t = S.ui.theme;
+  if (t === 'dark' || t === 'light') r.setAttribute('data-theme', t); else r.removeAttribute('data-theme');
+}
+
+/* ---------- GitHub (not available inside the artifact: CSP) ---------- */
+function ghErr(status, body) {
+  var m = { 401: 'โทเคนไม่ถูกต้องหรือหมดอายุ', 403: 'โทเคนไม่มีสิทธิ์เขียน (ต้องเป็น Contents: Read and write ของ repo นี้)', 404: 'ไม่พบ repo หรือ branch นี้ หรือโทเคนเข้าถึง repo นี้ไม่ได้', 409: 'ไฟล์ถูกแก้พร้อมกัน ลองกดอีกครั้ง', 422: 'GitHub ไม่รับคำขอ (ตรวจชื่อ branch และชื่อไฟล์)' }[status] || ('GitHub ตอบกลับรหัส ' + status);
+  var e = new Error(m); e.status = status; e.detail = body; return e;
+}
+function ghHeaders(tok, json) {
+  var h = { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
+  if (json) h['Content-Type'] = 'application/json';
+  return h;
+}
+function ghContentsUrl(file) {
+  return 'https://api.github.com/repos/' + S.cfg.user + '/' + S.cfg.repo + '/contents/' + file.split('/').map(encodeURIComponent).join('/');
+}
+async function ghTest() {
+  var tok = getToken(); if (!tok) throw new Error('ยังไม่ได้ใส่โทเคน');
+  var r = await fetch('https://api.github.com/repos/' + S.cfg.user + '/' + S.cfg.repo, { headers: ghHeaders(tok), cache: 'no-store' });
+  if (!r.ok) throw ghErr(r.status);
+  var j = await r.json();
+  return { name: j.full_name, canPush: !!(j.permissions && j.permissions.push), private: !!j.private };
+}
+async function ghPublish(p, text) {
+  var tok = getToken(); if (!tok) throw new Error('ยังไม่ได้ใส่โทเคน GitHub (ตั้งค่า > GitHub)');
+  var url = ghContentsUrl(p.file);
+  var r = await fetch(url + '?ref=' + encodeURIComponent(S.cfg.branch), { headers: ghHeaders(tok), cache: 'no-store' });
+  var sha = null;
+  if (r.status === 200) {
+    var j = await r.json(); sha = j.sha;
+    try { if (Core.fromB64(j.content) === text) return { unchanged: true }; } catch (e) { /* compare failed: just write */ }
+  } else if (r.status !== 404) throw ghErr(r.status);
+  var body = { message: 'Update ' + p.file + ' (' + rowsOf(p.id).length + ' licenses)', content: Core.toB64(text), branch: S.cfg.branch };
+  if (sha) body.sha = sha;
+  var w = await fetch(url, { method: 'PUT', headers: ghHeaders(tok, true), body: JSON.stringify(body) });
+  if (!w.ok) throw ghErr(w.status);
+  var j2 = await w.json();
+  return { commit: j2.commit && j2.commit.sha, url: j2.content && j2.content.html_url };
+}
+/* read the published raw file and compare it with the local one */
+async function checkLive(p) {
+  var r = await fetch(rawUrlOf(p) + '?t=' + Date.now(), { cache: 'no-store' });
+  if (r.status === 404) return { k: 'missing' };
+  if (!r.ok) throw new Error('GitHub ตอบกลับรหัส ' + r.status);
+  var text = await r.text(), parsed = Core.parseList(text);
+  if (!parsed.sig) return { k: 'nosig' };
+  if (!Core.sigValid(parsed, p.secret)) return { k: 'badsig', count: parsed.rows.length };
+  var local = Core.parseList(fileOf(p));
+  if (parsed.sig === local.sig) return { k: 'same', count: parsed.rows.length };
+  return { k: 'stale', count: parsed.rows.length, local: local.rows.length };
+}
+
+/* ---------- outbound: webhook + parent window ---------- */
+function outbound(pl) {
+  if (CAN_NET && S.hooks.webhook && /^https:\/\//.test(S.hooks.webhook)) {
+    try { fetch(S.hooks.webhook, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify(pl), keepalive: true }).catch(function () { }); } catch (e) { /* ignore */ }
+  }
+  if (S.hooks.bridge && S.hooks.origin && window.parent && window.parent !== window) {
+    try { window.parent.postMessage({ pktl: 1, event: pl }, S.hooks.origin); } catch (e) { /* ignore */ }
+  }
+}
+
+/* ---------- public API (also used by the postMessage bridge). Never returns secrets. ---------- */
+function pubProduct(p) { return { id: p.id, name: p.name, file: p.file, url: rawUrlOf(p), count: rowsOf(p.id).length, published: isPublished(p), fingerprint: Core.fingerprint(p) }; }
+function needProduct(id) { var p = prodById(id || S.cur); if (!p) throw new Error('product not found'); return p; }
+function afterApi() { if (typeof renderAll === 'function') renderAll(); }
+var API = {
+  version: 2,
+  on: on, off: off,
+  core: { idFor: function (pid, login, company, server) { return Core.idFor(needProduct(pid), login, company, server); } },
+  products: function () { return S.products.map(pubProduct); },
+  customers: function (pid) { var p = needProduct(pid); return Core.sortRows(rowsOf(p.id)).map(function (r) { return { id: r.id, exp: r.exp, label: r.label || '', note: r.note || '', status: Core.statusOf(r).k }; }); },
+  addCustomer: function (o) {
+    var p = needProduct(o.product), id = o.id ? Core.pickId(o.id) : '';
+    if (!id && o.account) id = Core.idFor(p, o.account.login, o.account.company, o.account.server);
+    if (!Core.ID_RE.test(id)) throw new Error('invalid id');
+    var exp = o.exp === 'never' ? 'never' : String(o.exp || '').replace(/-/g, '.');
+    if (exp !== 'never' && !Core.validDate(exp)) throw new Error('invalid exp (YYYY.MM.DD or never)');
+    var label = String(o.label || '').trim(); if (!Core.validLabel(label)) throw new Error('invalid label (ASCII, no ;)');
+    var res = putRow(p.id, { id: id, exp: exp, label: label, note: String(o.note || '') }); afterApi(); return { result: res, id: id };
+  },
+  removeCustomer: function (o) { var p = needProduct(o.product); delRow(p.id, Core.pickId(o.id)); afterApi(); return true; },
+  buildList: function (o) { return fileOf(needProduct(o && o.product)); },
+  publish: function (o) { var p = needProduct(o && o.product); return publishNow(p); }
+};
+async function publishNow(p) {
+  if (!CAN_NET) throw new Error('publish via API is not available in this build');
+  var res = await ghPublish(p, fileOf(p));
+  markPublished(p, 'api'); afterApi();
+  return res;
+}
+window.addEventListener('message', function (ev) {
+  if (!S || !S.hooks.bridge || !S.hooks.origin || ev.origin !== S.hooks.origin) return;
+  var m = ev.data;
+  if (!m || m.pktl !== 1 || typeof m.method !== 'string' || !ev.source) return;
+  var allowed = { ping: 1, products: 1, customers: 1, addCustomer: 1, removeCustomer: 1, buildList: 1, publish: 1 };
+  var reply = function (o) { try { ev.source.postMessage(Object.assign({ pktl: 1, id: m.id }, o), ev.origin); } catch (e) { /* ignore */ } };
+  if (!allowed[m.method]) return reply({ ok: false, error: 'unknown method' });
+  Promise.resolve().then(function () {
+    if (m.method === 'ping') return { version: 2 };
+    if (m.method === 'customers') return API.customers(m.params && m.params.product);
+    return API[m.method](m.params || {});
+  }).then(function (r) { reply({ ok: true, result: r }); }, function (e) { reply({ ok: false, error: String(e && e.message || e) }); });
+});
+window.PKTL = API;
+
+/* ---------- install prompt (PWA) ---------- */
+var installEvt = null;
+window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); installEvt = e; if (typeof renderTab === 'function' && T.tab === 'config') renderTab(); });
+window.addEventListener('appinstalled', function () { installEvt = null; toast('ติดตั้งแอปแล้ว'); });
+function isStandalone() { return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true; }
+
+/* ---- 30-ui-shell.js ---- */
+/* =====================================================================
+   30-ui-shell.js  -  tabs, top bar, click dispatch, overview tab
+   Conventions: buttons carry data-act="name" (+ data-id ...). Handlers live in H.
+   Destructive actions need two clicks (DESTRUCTIVE) - no confirm() dialogs (blocked in the artifact).
+   ===================================================================== */
+var TABS = ['home', 'customers', 'publish', 'build', 'guide', 'config'];
+var H = {};
+var DESTRUCTIVE = { delrow: 1, delprod: 1, regenkey: 1, restore: 1, resetall: 1 };
+
+function pill(k, t) { return '<span class="pill ' + k + '">' + esc(t) + '</span>'; }
+function fmtDT(ts) { var d = new Date(ts); return d.getFullYear() + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getDate()).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+function shortId(id) { return id.slice(0, 8) + '…' + id.slice(-4); }
+function armBtn(act, id, label, sure, cls) {
+  var on = T.armed === act + ':' + id;
+  return '<button type="button" class="btn danger ' + (cls || '') + (on ? ' armed' : '') + '" data-act="' + act + '" data-id="' + esc(id) + '" data-label="' + esc(label) + '" data-sure="' + esc(sure) + '">' + esc(on ? sure : label) + '</button>';
+}
+function needProductCard() {
+  return '<div class="card hud"><h2>ยังไม่มีผลิตภัณฑ์</h2><p class="muted">ผลิตภัณฑ์ = EA หนึ่งตัวที่คุณแจกจ่ายสิทธิ์ใช้งาน สร้างอันแรกได้ที่หน้าภาพรวม</p><div class="btns"><button type="button" class="btn primary" data-go="home">ไปหน้าภาพรวม</button></div></div>';
+}
+
+/* ---------- arming (two-click confirm) without re-rendering the tab ---------- */
+var armTimer;
+function btnFor(key) { return $$('[data-act][data-sure]').filter(function (b) { return b.dataset.act + ':' + (b.dataset.id || '') === key; }); }
+function disarm() {
+  if (T.armed) btnFor(T.armed).forEach(function (b) { b.textContent = b.dataset.label; b.classList.remove('armed'); });
+  T.armed = null; clearTimeout(armTimer);
+}
+function arm(key) {
+  disarm(); T.armed = key;
+  btnFor(key).forEach(function (b) { b.textContent = b.dataset.sure; b.classList.add('armed'); });
+  armTimer = setTimeout(disarm, 4500);
+}
+
+/* ---------- tabs ---------- */
+function showTab(t, noHash) {
+  if (TABS.indexOf(t) < 0) t = 'home';
+  T.tab = t; disarm();
+  $$('[data-panel]').forEach(function (el) { el.hidden = el.dataset.panel !== t; });
+  $$('#nav [data-tab]').forEach(function (b) { b.setAttribute('aria-selected', b.dataset.tab === t ? 'true' : 'false'); });
+  if (!noHash && location.hash.slice(1) !== t) { try { location.hash = t; } catch (e) { /* ignore */ } }
+  renderTab();
+  window.scrollTo(0, 0);
+}
+function renderTab() {
+  ({ home: renderHome, customers: renderCustomers, publish: renderPublish, build: renderBuild, guide: renderGuide, config: renderConfig }[T.tab] || renderHome)();
+}
+function renderShell() {
+  var sel = $('#prodSel');
+  sel.innerHTML = S.products.length ? S.products.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>'; }).join('') : '<option value="">ยังไม่มีผลิตภัณฑ์</option>';
+  sel.value = S.cur; sel.disabled = !S.products.length;
+  var p = curProd(), led = $('#syncLed'), dot = $('#dotPub');
+  if (!p) { led.innerHTML = '<i class="led"></i>ยังไม่เริ่ม'; dot.hidden = true; }
+  else if (!rowsOf(p.id).length && !S.pub[p.id]) { led.innerHTML = '<i class="led"></i>ยังไม่มีลูกค้า'; dot.hidden = true; }
+  else if (isPending(p)) { led.innerHTML = '<i class="led warn"></i>ยังไม่เผยแพร่'; dot.hidden = false; }
+  else { led.innerHTML = '<i class="led ok"></i>เผยแพร่แล้ว'; dot.hidden = true; }
+  $('#banner').innerHTML = storageOk ? '' : '<div class="note warn">เบราว์เซอร์นี้ไม่ยอมให้บันทึกข้อมูล ข้อมูลจะหายเมื่อปิดหน้า ใช้ปุ่มสำรองข้อมูลในหน้าตั้งค่าเก็บไว้</div>';
+}
+function renderAll() { renderShell(); renderTab(); }
+
+/* ---------- click / change dispatch ---------- */
+document.addEventListener('click', function (e) {
+  var go = e.target.closest('[data-go]');
+  if (go) { showTab(go.dataset.go); return; }
+  var tb = e.target.closest('#nav [data-tab]');
+  if (tb) { showTab(tb.dataset.tab); return; }
+  var b = e.target.closest('[data-act]');
+  if (!b || b.disabled) return;
+  var act = b.dataset.act, key = act + ':' + (b.dataset.id || '');
+  if (DESTRUCTIVE[act]) { if (T.armed !== key) { arm(key); return; } disarm(); }
+  if (H[act]) H[act](b, e);
+});
+document.addEventListener('change', function (e) {
+  var el = e.target;
+  if (el.id === 'prodSel') { S.cur = el.value; save(); T.editing = null; resetForm(); T.buildOut = null; T.liveMsg = null; T.pubMsg = null; renderAll(); }
+});
+window.addEventListener('hashchange', function () { var t = location.hash.slice(1); if (TABS.indexOf(t) >= 0 && t !== T.tab) showTab(t, true); });
+
+/* =====================================================================
+   OVERVIEW
+   ===================================================================== */
+var RING_C = 2 * Math.PI * 44;
+function renderHome() {
+  var el = $('#p-home'), p = curProd();
+  if (!p) {
+    el.innerHTML = '<div class="card hud"><h1 style="font-size:20px">เริ่มต้นใช้งาน</h1>' +
+      '<p class="muted" style="margin-top:6px">ผลิตภัณฑ์คือ EA หนึ่งตัวที่คุณจะแจกสิทธิ์ใช้งาน แอปจะสร้างกุญแจเซ็นรายชื่อให้เอง ใช้ได้หลาย EA ในแอปเดียว</p>' +
+      '<label for="newName">ชื่อผลิตภัณฑ์ (ชื่อ EA)</label><input type="text" id="newName" value="PKTL NY Prop v1" autocomplete="off" maxlength="60">' +
+      '<div class="btns"><button type="button" class="btn primary" data-act="newprod">สร้างผลิตภัณฑ์แรก</button><button type="button" class="btn" data-go="config">กู้คืนจากข้อมูลสำรอง</button></div></div>' +
+      '<div class="note">ถ้าเคยใช้แอปเวอร์ชันเก่าบนเบราว์เซอร์นี้ ข้อมูลจะถูกย้ายมาให้อัตโนมัติ ถ้ายังไม่ขึ้น ให้ใช้ปุ่มกู้คืนด้วยข้อความสำรองจากเครื่องเดิม</div>';
+    return;
+  }
+  var steps = stepsOf(p), nDone = steps.filter(function (s) { return s.done; }).length, next = steps.filter(function (s) { return !s.done; })[0];
+  var st = stats(p), published = !!S.pub[p.id];
+  var title, sub, go = null, goLabel = '';
+  if (!next) { title = 'พร้อมใช้งานครบทุกขั้น'; sub = 'รายชื่อบน GitHub ตรงกับในแอป ถ้าเพิ่มหรือลบลูกค้า อย่าลืมเผยแพร่ใหม่'; }
+  else if (next.k === 'publish' && published) { title = 'มีการเปลี่ยนแปลงที่ยังไม่เผยแพร่'; sub = 'ลูกค้าจะยังเห็นรายชื่อเก่าจนกว่าจะเผยแพร่'; go = 'publish'; goLabel = 'ไปเผยแพร่'; }
+  else { title = 'ขั้นต่อไป: ' + next.t; sub = next.hint; go = next.go; goLabel = 'ไปทำขั้นนี้'; }
+  var off = RING_C * (1 - nDone / steps.length);
+
+  var soon = Core.sortRows(rowsOf(p.id)).map(function (r) { return { r: r, s: Core.statusOf(r) }; }).filter(function (x) { return x.s.k !== 'ok'; })
+    .sort(function (a, b) { return a.s.days - b.s.days; }).slice(0, 5);
+
+  var html = '<div class="card hud hero"><div class="ring" role="img" aria-label="ความพร้อม ' + nDone + ' จาก ' + steps.length + ' ขั้น">' +
+    '<svg viewBox="0 0 100 100" aria-hidden="true"><circle class="bg" cx="50" cy="50" r="44"/><circle class="fg" id="ringFg" cx="50" cy="50" r="44" stroke-dasharray="' + RING_C.toFixed(2) + '" stroke-dashoffset="' + RING_C.toFixed(2) + '"/>' +
+    '<circle class="tick" cx="50" cy="50" r="44" stroke-dasharray="2 ' + (RING_C / steps.length - 2).toFixed(2) + '"/></svg><b>' + nDone + '<small>/' + steps.length + '</small></b></div>' +
+    '<div><h1>' + esc(title) + '</h1><p>' + esc(sub) + '</p>' + (go ? '<div class="btns"><button type="button" class="btn primary" data-go="' + go + '">' + esc(goLabel) + '</button></div>' : '') + '</div></div>';
+
+  html += '<div class="stats"><div class="stat"><b>' + st.total + '</b><span>ลูกค้าทั้งหมด</span></div><div class="stat ok"><b>' + st.active + '</b><span><i class="led ok"></i>ใช้งานอยู่</span></div>' +
+    '<div class="stat warn"><b>' + st.soon + '</b><span><i class="led warn"></i>ใกล้หมด ≤7 วัน</span></div><div class="stat bad"><b>' + st.bad + '</b><span><i class="led bad"></i>หมดอายุ</span></div></div>';
+
+  html += '<div class="card"><h2>ต้องดูแล</h2>';
+  if (!soon.length) html += '<p class="muted" style="margin:0">ไม่มีลูกค้าที่ใกล้หมดหรือหมดอายุ</p>';
+  else html += '<div class="strips">' + soon.map(function (x) {
+    return '<div class="strip"><div class="l1"><span class="lbl">' + esc(x.r.label || '(ไม่มีรหัส)') + '</span>' + pill(x.s.k, x.s.t) + '</div><div class="meta mono">' + shortId(x.r.id) + ' · หมด ' + esc(x.r.exp) + (x.s.days !== null ? ' (' + (x.s.days < 0 ? 'เกินมา ' + (-x.s.days) : 'อีก ' + x.s.days) + ' วัน)' : '') + '</div>' +
+      '<div class="acts"><button type="button" class="btn sm" data-act="renew" data-id="' + x.r.id + '" data-n="30">ต่อ 30 วัน</button><button type="button" class="btn sm" data-act="renew" data-id="' + x.r.id + '" data-n="365">ต่อ 1 ปี</button></div></div>';
+  }).join('') + '</div>';
+  html += '</div>';
+
+  html += '<details class="card"' + (nDone < steps.length ? ' open' : '') + '><summary>เช็กลิสต์ติดตั้ง ' + nDone + '/' + steps.length + '</summary><ol class="steps">' + steps.map(function (s) {
+    var cls = s.done ? 'done' : (s === next ? 'next' : '');
+    var btn = s.manual ? '<button type="button" class="btn sm" data-act="toggledone" data-id="' + s.k + '">' + (s.done ? 'ยกเลิก' : 'ทำแล้ว') + '</button>' : (s.done ? '' : '<button type="button" class="btn sm" data-go="' + s.go + '">ไป</button>');
+    return '<li class="' + cls + '"><span class="tick-ico"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span><div><div class="t">' + esc(s.t) + '</div><div class="h">' + esc(s.hint) + '</div></div>' + btn + '</li>';
+  }).join('') + '</ol></details>';
+
+  if (S.products.length > 1) {
+    html += '<div class="card"><h2>ผลิตภัณฑ์ทั้งหมด</h2><div class="strips">' + S.products.map(function (q) {
+      var sq = stats(q), pend = isPending(q) && (rowsOf(q.id).length || S.pub[q.id]);
+      return '<div class="strip"><div class="l1"><span class="lbl">' + esc(q.name) + '</span>' + (q.id === S.cur ? pill('ok', 'กำลังเปิดอยู่') : '') + (pend ? pill('warn', 'ยังไม่เผยแพร่') : '') + '</div><div class="meta">ลูกค้า ' + sq.total + ' · ใช้งาน ' + sq.active + ' · ใกล้หมด ' + sq.soon + ' · หมด ' + sq.bad + '</div>' +
+        (q.id === S.cur ? '' : '<div class="acts"><button type="button" class="btn sm" data-act="setcur" data-id="' + q.id + '">เปิดผลิตภัณฑ์นี้</button></div>') + '</div>';
+    }).join('') + '</div></div>';
+  }
+  el.innerHTML = html;
+  requestAnimationFrame(function () { requestAnimationFrame(function () { var fg = $('#ringFg'); if (fg) fg.setAttribute('stroke-dashoffset', off.toFixed(2)); }); });
+}
+
+H.newprod = function () {
+  try { addProduct($('#newName').value); toast('สร้างผลิตภัณฑ์แล้ว สร้างกุญแจให้อัตโนมัติ'); renderAll(); }
+  catch (e) { toast(e.message, true); }
+};
+H.setcur = function (b) { S.cur = b.dataset.id; save(); T.editing = null; resetForm(); renderAll(); };
+H.toggledone = function (b) {
+  var p = curProd(); if (!p) return;
+  var d = S.done[p.id] = S.done[p.id] || {}; d[b.dataset.id] = !d[b.dataset.id]; save(); renderAll();
+};
+
+/* ---- 40-ui-customers.js ---- */
+/* =====================================================================
+   40-ui-customers.js  -  customers tab (form is static in body.html, list is rendered)
+   ===================================================================== */
+function acctInfo() { return { login: $('#fLogin').value.trim(), company: $('#fCompany').value, server: $('#fServer').value }; }
+function acctId() {
+  var p = curProd(), a = acctInfo();
+  if (!p || !a.login || !a.company.trim() || !a.server.trim()) return '';
+  return Core.idFor(p, a.login, a.company, a.server);
+}
+function updateAcctId() {
+  var p = curProd(), el = $('#acctId'), id = acctId();
+  el.innerHTML = !p ? 'สร้างผลิตภัณฑ์ก่อน' : (id ? 'ID ที่คำนวณได้: <span class="mono">' + id.slice(0, 12) + '…</span>' : 'กรอกเลขบัญชี บริษัท และเซิร์ฟเวอร์ให้ครบ แอปจะคำนวณ ID ให้');
+}
+function setFormMode(m) {
+  T.formMode = m;
+  $$('#formCard .seg [data-mode]').forEach(function (b) { b.classList.toggle('on', b.dataset.mode === m); });
+  $('#modeId').hidden = m !== 'id'; $('#modeAcct').hidden = m !== 'acct';
+  updateAcctId();
+}
+function resetForm() {
+  T.editing = null;
+  ['fId', 'fLogin', 'fCompany', 'fServer', 'fLabel', 'fNote', 'fDate'].forEach(function (i) { $('#' + i).value = ''; });
+  $('#fNever').checked = false; $('#fDate').disabled = false; $('#fId').readOnly = false;
+  $('#formTitle').textContent = 'เพิ่มลูกค้า'; $('#btnAdd').textContent = 'เพิ่มรายการ'; $('#btnCancelEdit').hidden = true;
+  setFormMode('id');
+}
+function filteredRows(p) {
+  var q = T.q.trim().toLowerCase();
+  return Core.sortRows(rowsOf(p.id)).reverse().filter(function (r) {
+    var s = Core.statusOf(r).k;
+    if (T.filter !== 'all' && s !== T.filter) return false;
+    if (!q) return true;
+    return (r.id + ' ' + (r.label || '') + ' ' + (r.note || '') + ' ' + (r.acct ? r.acct.login + ' ' + r.acct.company + ' ' + r.acct.server : '')).toLowerCase().indexOf(q) >= 0;
+  });
+}
+function renderCustList() {
+  var p = curProd(), el = $('#custList');
+  $$('#custFilters .chip').forEach(function (c) { c.classList.toggle('on', c.dataset.filter === T.filter); });
+  if (!p) { el.innerHTML = '<div class="empty">สร้างผลิตภัณฑ์ที่หน้าภาพรวมก่อน</div>'; $('#custCount').textContent = ''; return; }
+  var all = rowsOf(p.id), rows = filteredRows(p);
+  $('#custCount').textContent = all.length ? (rows.length === all.length ? all.length + ' รายการ' : rows.length + ' จาก ' + all.length) : '';
+  if (!all.length) { el.innerHTML = '<div class="empty">ยังไม่มีลูกค้า เพิ่มรายแรกด้วยฟอร์มด้านบน<br>ใช้บัญชีเดโมของคุณเองทดสอบก่อนก็ได้</div>'; return; }
+  if (!rows.length) { el.innerHTML = '<div class="empty">ไม่พบรายการที่ตรงกับตัวกรอง</div>'; return; }
+  el.innerHTML = rows.map(function (r) {
+    var s = Core.statusOf(r);
+    var meta = '<span class="mono">' + shortId(r.id) + '</span> · ' + (r.exp === 'never' ? 'ไม่มีวันหมดอายุ' : 'ถึง <span class="mono">' + esc(r.exp) + '</span>' + (s.days !== null ? ' (' + (s.days < 0 ? 'เกินมา ' + (-s.days) : 'เหลือ ' + s.days) + ' วัน)' : ''));
+    var extra = (r.acct ? '<div class="meta">บัญชี ' + esc(r.acct.login) + ' · ' + esc(r.acct.company) + ' · ' + esc(r.acct.server) + '</div>' : '') + (r.note ? '<div class="meta">' + esc(r.note) + '</div>' : '');
+    return '<article class="strip"><div class="l1"><span class="lbl">' + esc(r.label || '(ไม่มีรหัส)') + '</span>' + pill(s.k, s.t) + '</div><div class="meta">' + meta + '</div>' + extra +
+      '<div class="acts"><button type="button" class="btn sm" data-act="renew" data-id="' + r.id + '" data-n="30">+30 วัน</button><button type="button" class="btn sm" data-act="renew" data-id="' + r.id + '" data-n="90">+90 วัน</button><button type="button" class="btn sm" data-act="renew" data-id="' + r.id + '" data-n="365">+1 ปี</button>' +
+      '<button type="button" class="btn sm" data-act="editrow" data-id="' + r.id + '">แก้ไข</button><button type="button" class="btn sm" data-act="copyid" data-id="' + r.id + '">คัดลอก ID</button>' + armBtn('delrow', r.id, 'ลบ', 'กดอีกครั้งเพื่อลบ', 'sm') + '</div></article>';
+  }).join('');
+}
+function renderCustomers() {
+  var p = curProd();
+  $('#formCard').style.opacity = p ? '' : '0.55';
+  ['btnAdd'].forEach(function (i) { $('#' + i).disabled = !p; });
+  updateAcctId(); renderCustList();
+}
+
+/* ---------- form events ---------- */
+document.addEventListener('click', function (e) {
+  var m = e.target.closest('#formCard [data-mode]'); if (m) { setFormMode(m.dataset.mode); return; }
+  var d = e.target.closest('#formCard [data-days]');
+  if (d) { $('#fNever').checked = false; $('#fDate').disabled = false; $('#fDate').value = Core.dotDate(Core.addDays(Core.today(), +d.dataset.days)).replace(/\./g, '-'); return; }
+  var f = e.target.closest('#custFilters [data-filter]'); if (f) { T.filter = f.dataset.filter; renderCustList(); }
+});
+document.addEventListener('input', function (e) {
+  var id = e.target.id;
+  if (id === 'fLogin' || id === 'fCompany' || id === 'fServer') updateAcctId();
+  if (id === 'fSearch') { T.q = e.target.value; renderCustList(); }
+});
+document.addEventListener('change', function (e) {
+  if (e.target.id === 'fNever') { $('#fDate').disabled = e.target.checked; if (e.target.checked) $('#fDate').value = ''; }
+});
+
+function submitForm() {
+  var p = curProd(); if (!p) { toast('สร้างผลิตภัณฑ์ก่อน', true); return; }
+  var id, acct = null;
+  if (T.formMode === 'id') id = Core.pickId($('#fId').value);
+  else { id = acctId(); acct = acctInfo(); acct.company = acct.company.trim(); acct.server = acct.server.trim(); }
+  if (!id) { toast(T.formMode === 'acct' ? 'กรอกข้อมูลบัญชีให้ครบ' : 'วาง ID ของลูกค้า', true); return; }
+  if (!Core.ID_RE.test(id)) { toast('ID ต้องเป็นตัวอักษร 0-9 และ a-f ยาว 64 ตัวพอดี', true); return; }
+  var exp;
+  if ($('#fNever').checked) exp = 'never';
+  else {
+    var v = $('#fDate').value;
+    if (!v) { toast('เลือกวันหมดอายุ หรือติ๊ก “ไม่มีวันหมดอายุ”', true); return; }
+    exp = v.replace(/-/g, '.');
+    if (!Core.validDate(exp)) { toast('วันที่ไม่ถูกต้อง', true); return; }
+  }
+  var label = $('#fLabel').value.trim();
+  if (!Core.validLabel(label)) { toast('รหัสลูกค้าใช้ตัวอักษรอังกฤษ/ตัวเลขเท่านั้น ห้ามมี ; และห้ามขึ้นต้นด้วย #', true); return; }
+  var row = { id: id, exp: exp, label: label, note: $('#fNote').value.trim() };
+  if (acct) row.acct = acct;
+  var editingId = T.editing;
+  if (editingId && editingId !== id) delRow(p.id, editingId);
+  var res = putRow(p.id, row);
+  toast((res === 'added' ? 'เพิ่มแล้ว' : 'อัปเดตแล้ว') + ' อย่าลืมเผยแพร่');
+  resetForm(); renderAll();
+}
+document.addEventListener('click', function (e) {
+  if (e.target.closest('#btnAdd')) submitForm();
+  if (e.target.closest('#btnCancelEdit')) resetForm();
+  if (e.target.closest('#btnImp')) importList();
+});
+
+H.renew = function (b) {
+  var p = curProd(), r = rowsOf(p.id).filter(function (x) { return x.id === b.dataset.id; })[0]; if (!r) return;
+  if (r.exp === 'never') { toast('รายการนี้ไม่มีวันหมดอายุอยู่แล้ว'); return; }
+  var exp = Core.renewExp(r, +b.dataset.n);
+  putRow(p.id, { id: r.id, exp: exp }); toast('ต่ออายุเป็น ' + exp + ' อย่าลืมเผยแพร่'); renderAll();
+};
+H.editrow = function (b) {
+  var p = curProd(), r = rowsOf(p.id).filter(function (x) { return x.id === b.dataset.id; })[0]; if (!r) return;
+  T.editing = r.id; setFormMode('id');
+  $('#fId').value = r.id; $('#fId').readOnly = true;
+  $('#fLabel').value = r.label || ''; $('#fNote').value = r.note || '';
+  $('#fNever').checked = r.exp === 'never'; $('#fDate').disabled = r.exp === 'never';
+  $('#fDate').value = r.exp === 'never' ? '' : r.exp.replace(/\./g, '-');
+  $('#formTitle').textContent = 'แก้ไขลูกค้า'; $('#btnAdd').textContent = 'บันทึกการแก้ไข'; $('#btnCancelEdit').hidden = false;
+  $('#formCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+H.copyid = function (b) { copyText(b.dataset.id).then(function (ok) { toast(ok ? 'คัดลอก ID แล้ว' : 'คัดลอกอัตโนมัติไม่ได้', !ok); }); };
+H.delrow = function (b) { var p = curProd(); delRow(p.id, b.dataset.id); toast('ลบแล้ว อย่าลืมเผยแพร่'); renderAll(); };
+
+function importList() {
+  var p = curProd(), out = $('#impResult'); if (!p) { out.innerHTML = '<div class="note bad">สร้างผลิตภัณฑ์ก่อน</div>'; return; }
+  var parsed = Core.parseList($('#impText').value || '');
+  if (!parsed.rows.length) { out.innerHTML = '<div class="note bad">ไม่พบรายการที่อ่านได้ ต้องเป็นบรรทัดรูปแบบ <span class="mono">ID;YYYY.MM.DD;รหัส</span></div>'; return; }
+  var added = 0, upd = 0;
+  parsed.rows.forEach(function (r) { (putRow(p.id, { id: r.id, exp: r.exp, label: r.label }) === 'added') ? added++ : upd++; });
+  var sig = !parsed.sig ? 'ไฟล์นี้ไม่มีลายเซ็น' : (Core.sigValid(parsed, p.secret) ? 'ลายเซ็นถูกต้องกับกุญแจของผลิตภัณฑ์นี้' : 'ลายเซ็นไม่ตรงกับกุญแจของผลิตภัณฑ์นี้ (ID ในไฟล์อาจมาจากกุญแจชุดอื่น และจะใช้ไม่ได้)');
+  out.innerHTML = '<div class="note ' + (parsed.sig && Core.sigValid(parsed, p.secret) ? 'ok' : 'warn') + '">เพิ่มใหม่ ' + added + ' · อัปเดต ' + upd + (parsed.bad ? ' · ข้าม ' + parsed.bad + ' บรรทัดที่อ่านไม่ได้' : '') + '<br>' + esc(sig) + '</div>';
+  renderAll();
+}
+
+/* ---- 50-ui-publish-build.js ---- */
+/* =====================================================================
+   50-ui-publish-build.js  -  publish tab (rendered) and build tab (static form + rendered result)
+   ===================================================================== */
+function ghLinks(p) {
+  var c = S.cfg, base = 'https://github.com/' + c.user + '/' + c.repo;
+  return { edit: base + '/edit/' + c.branch + '/' + p.file, create: base + '/new/' + c.branch + '?filename=' + encodeURIComponent(p.file), raw: rawUrlOf(p) };
+}
+function liveNote(m) {
+  if (!m) return '';
+  var map = {
+    same: ['ok', 'ตรงกัน ไฟล์บน GitHub เป็นฉบับล่าสุดจากแอป (' + m.count + ' รายการ ลายเซ็นถูกต้อง)'],
+    stale: ['warn', 'ไฟล์บน GitHub เป็นฉบับเก่า (มี ' + m.count + ' รายการ ในแอปมี ' + m.local + ') ลายเซ็นถูกต้องแต่ไม่ใช่ฉบับล่าสุด กดเผยแพร่ใหม่ หรือรอแคชของ GitHub ราว 5 นาที'],
+    badsig: ['bad', 'ไฟล์บน GitHub ลายเซ็นไม่ตรงกับกุญแจของผลิตภัณฑ์นี้ EA จะแสดง “signature is invalid” ตรวจว่าเผยแพร่ถูกไฟล์ หรือกุญแจเปลี่ยนไป'],
+    nosig: ['bad', 'ไฟล์บน GitHub ไม่มีบรรทัด SIG; ไฟล์ไม่ได้มาจากแอปนี้'],
+    missing: ['warn', 'ยังไม่พบไฟล์บน GitHub (404) ตรวจชื่อผู้ใช้ repo branch และชื่อไฟล์ หรือยังไม่ได้เผยแพร่'],
+    error: ['bad', m.msg || 'ตรวจไม่สำเร็จ']
+  };
+  var x = map[m.k] || map.error;
+  return '<div class="note ' + x[0] + '" style="margin-top:10px">' + esc(x[1]) + '</div>';
+}
+function renderPublish() {
+  var el = $('#p-publish'), p = curProd();
+  if (!p) { el.innerHTML = needProductCard(); return; }
+  var text = fileOf(p), n = rowsOf(p.id).length, pub = S.pub[p.id], pending = isPending(p), L = ghLinks(p);
+  var hasTok = !!getToken(), canApi = CAN_NET && hasTok && cfgOk();
+  var stateLine = pending ? '<span class="pill warn">ยังไม่เผยแพร่</span> ไฟล์ในแอปต่างจากที่เผยแพร่ล่าสุด' : '<span class="pill ok">เผยแพร่แล้ว</span> ตรงกับที่เผยแพร่ล่าสุด';
+  var h = '<div class="card hud"><h2>' + esc(p.name) + '</h2><p>' + stateLine + '</p><dl class="kv">' +
+    '<dt>ไฟล์</dt><dd class="mono">' + esc(p.file) + '</dd><dt>EA อ่านจาก</dt><dd class="mono">' + esc(L.raw) + '</dd><dt>ลูกค้า</dt><dd>' + n + ' รายการ</dd>' +
+    '<dt>เผยแพร่ล่าสุด</dt><dd>' + (pub ? fmtDT(pub.t) + ' (' + (pub.via === 'api' ? 'ผ่าน GitHub API' : pub.via === 'v1' ? 'จากแอปเวอร์ชันเก่า' : 'วางเอง') + ')' : 'ยังไม่เคย') + '</dd>' +
+    '<dt>ลายเซ็น</dt><dd class="mono">' + esc(Core.sigOfText(text).slice(0, 16)) + '…</dd></dl></div>';
+
+  h += '<div class="card"><h2>เผยแพร่</h2>';
+  if (CAN_NET) {
+    if (canApi) h += '<p class="muted">กดปุ่มเดียว แอปจะอัปโหลดไฟล์ขึ้น GitHub ให้ (ใช้โทเคนที่ตั้งไว้)</p><div class="btns"><button type="button" class="btn primary" data-act="pubapi"' + (T.pubBusy ? ' disabled' : '') + '>' + (T.pubBusy ? 'กำลังเผยแพร่…' : 'เผยแพร่ขึ้น GitHub') + '</button></div>';
+    else h += '<div class="note">อยากเผยแพร่ด้วยปุ่มเดียว ให้ใส่โทเคน GitHub ที่หน้า <a href="#config" data-go="config">ตั้งค่า</a> ระหว่างนี้ใช้วิธีวางเองด้านล่างได้</div>';
+  } else {
+    h += '<div class="note">เวอร์ชันบน claude.ai อัปโหลดขึ้น GitHub เองไม่ได้ (ข้อจำกัดความปลอดภัยของหน้านี้) ใช้ขั้นตอนวางเองด้านล่าง หรือติดตั้งแอปเวอร์ชันเต็มเพื่อได้ปุ่มเผยแพร่อัตโนมัติ</div>';
+  }
+  if (T.pubMsg) h += '<div class="note ' + T.pubMsg.k + '" style="margin-top:10px">' + esc(T.pubMsg.t) + '</div>';
+  h += '<h3>หรือวางเอง (ทำได้ทุกที่)</h3><ol class="small" style="margin:0 0 8px;padding-left:20px"><li>กด “คัดลอกไฟล์”</li><li>เปิดหน้าแก้ไขไฟล์บน GitHub วางทับทั้งหมด แล้วกด Commit changes</li><li>กลับมากด “ฉันวางแล้ว”</li></ol>' +
+    '<div class="btns"><button type="button" class="btn primary" data-act="copyfile">คัดลอกไฟล์</button><button type="button" class="btn" data-act="dlfile">ดาวน์โหลด ' + esc(p.file.split('/').pop()) + '</button>' +
+    '<a class="btn" href="' + esc(L.edit) + '" target="_blank" rel="noopener">เปิดหน้าแก้ไขบน GitHub</a><a class="btn" href="' + esc(L.create) + '" target="_blank" rel="noopener">สร้างไฟล์ใหม่ (ครั้งแรก)</a>' +
+    '<button type="button" class="btn" data-act="markpub">ฉันวางแล้ว</button></div></div>';
+
+  h += '<div class="card"><h2>ตรวจไฟล์จริงบน GitHub</h2>';
+  if (CAN_NET) h += '<p class="muted">ดึงไฟล์ที่ EA จะอ่านจริง ตรวจลายเซ็นกับกุญแจ และเทียบกับในแอป</p><div class="btns"><button type="button" class="btn" data-act="checklive">ตรวจตอนนี้</button><a class="btn" href="' + esc(L.raw) + '" target="_blank" rel="noopener">เปิดลิงก์ที่ EA อ่าน</a></div>' + liveNote(T.liveMsg);
+  else h += '<p class="muted">เปิดลิงก์ที่ EA อ่านแล้วดูว่ามีบรรทัดตรงกับที่เผยแพร่</p><div class="btns"><a class="btn" href="' + esc(L.raw) + '" target="_blank" rel="noopener">เปิดลิงก์ที่ EA อ่าน</a></div>';
+  h += '<p class="small muted" style="margin-top:10px">GitHub เก็บแคชไฟล์ดิบประมาณ 5 นาที ถ้าเพิ่งเผยแพร่แล้วยังเห็นฉบับเก่า รอสักครู่</p></div>';
+
+  h += '<details class="card"><summary>ดูไฟล์ที่เซ็นแล้ว</summary><textarea class="nowrap tall" readonly spellcheck="false" aria-label="ไฟล์ที่เซ็นแล้ว">' + esc(text) + '</textarea></details>';
+  el.innerHTML = h;
+}
+H.copyfile = function () { var p = curProd(); copyText(fileOf(p)).then(function (ok) { toast(ok ? 'คัดลอกไฟล์แล้ว วางทับทั้งหมดบน GitHub' : 'คัดลอกอัตโนมัติไม่ได้ เปิด “ดูไฟล์ที่เซ็นแล้ว” แล้วคัดลอกเอง', !ok); if (!ok) { var d = $('#p-publish details'); if (d) d.open = true; } }); };
+H.dlfile = function () { var p = curProd(); saveFile(p.file.split('/').pop(), fileOf(p)).then(function (r) { if (r === 'saved') toast('ส่งไฟล์ให้ดาวน์โหลดแล้ว'); else if (r === 'unavailable') toast('ดาวน์โหลดไม่ได้ในหน้านี้ ใช้ปุ่มคัดลอก', true); }); };
+H.markpub = function () { var p = curProd(); markPublished(p, 'manual'); T.pubMsg = { k: 'ok', t: 'บันทึกว่าเผยแพร่แล้ว กดตรวจไฟล์จริงเพื่อยืนยัน' }; renderAll(); };
+H.pubapi = function () {
+  var p = curProd(); T.pubBusy = true; T.pubMsg = null; renderTab();
+  publishNow(p).then(function (r) {
+    T.pubMsg = { k: 'ok', t: r.unchanged ? 'ไฟล์บน GitHub ตรงกับในแอปอยู่แล้ว ไม่มีอะไรต้องอัปโหลด' : 'เผยแพร่แล้ว' + (r.commit ? ' (commit ' + String(r.commit).slice(0, 7) + ')' : '') };
+    if (r.unchanged) markPublished(p, 'api');
+  }, function (e) { T.pubMsg = { k: 'bad', t: 'เผยแพร่ไม่สำเร็จ: ' + (e.message || e) }; })
+    .then(function () { T.pubBusy = false; renderAll(); });
+};
+H.checklive = function () {
+  var p = curProd(); T.liveMsg = { k: 'error', msg: 'กำลังตรวจ…' }; renderTab();
+  checkLive(p).then(function (m) { T.liveMsg = m; }, function (e) { T.liveMsg = { k: 'error', msg: 'ตรวจไม่สำเร็จ: ' + (e.message || e) }; }).then(renderTab);
+};
+
+/* =====================================================================
+   BUILD
+   ===================================================================== */
+function renderBuild() {
+  var p = curProd(), out = $('#buildOut');
+  $('#buildFor').innerHTML = p ? 'ผลิตภัณฑ์: <b>' + esc(p.name) + '</b> · กุญแจรหัส <span class="mono">' + Core.fingerprint(p) + '</span> · EA จะอ่านจาก <span class="mono">' + esc(rawUrlOf(p)) + '</span>' : 'สร้างผลิตภัณฑ์ที่หน้าภาพรวมก่อน';
+  $('#btnBuild').disabled = !p;
+  var o = T.buildOut;
+  if (!o || !p || o.pid !== p.id) { out.innerHTML = ''; return; }
+  if (o.error) { out.innerHTML = '<div class="note bad">' + esc(o.error) + '</div>'; return; }
+  var lines = o.text.split(/\r?\n/).filter(function (l) { return /^#define[ \t]+(?:PKTL_)?LIC_(ENABLED|URL|SALT|SECRET)[ \t]/.test(l); }).map(function (l) {
+    return l.replace(/^(#define[ \t]+\S*(?:SALT|SECRET)[ \t]+")([^"]{4})[^"]*(")/, function (m, a, b, c) { return a + b + '…(ซ่อน)' + c; });
+  });
+  out.innerHTML = '<div class="note ok"><b>สร้างแล้ว</b> แก้ ' + o.changed.length + ' บรรทัดในไฟล์ต้นฉบับ ' + o.text.split(/\r?\n/).length + ' บรรทัด<pre class="mono small" style="margin:8px 0 0;white-space:pre-wrap;overflow-wrap:anywhere">' + esc(lines.join('\n')) + '</pre></div>' +
+    '<div class="btns"><button type="button" class="btn primary" data-act="dlea">ดาวน์โหลด ' + esc(eaFilename(o.name)) + '</button><button type="button" class="btn" data-act="copyea">คัดลอกโค้ดทั้งไฟล์</button></div>' +
+    '<ol class="small muted" style="padding-left:20px;margin:10px 0 0"><li>เปิดไฟล์ใน MetaEditor (ถ้าได้ไฟล์ .txt ให้เปลี่ยนนามสกุลเป็น .mq5 หรือวางโค้ดลงไฟล์ใหม่)</li><li>กด F7 ต้องได้ 0 errors</li><li>แจกเฉพาะไฟล์ .ex5 ให้ลูกค้า ห้ามแจก .mq5 เพราะมีกุญแจอยู่ข้างใน</li></ol>';
+}
+document.addEventListener('change', function (e) {
+  if (e.target.id !== 'srcFile') return;
+  var f = e.target.files && e.target.files[0]; if (!f) return;
+  f.arrayBuffer().then(function (buf) { $('#srcText').value = Core.decodeBytes(buf); toast('อ่านไฟล์ ' + f.name + ' แล้ว'); }, function () { toast('อ่านไฟล์ไม่ได้ ลองวางโค้ดแทน', true); });
+});
+function doBuild() {
+  var p = curProd(); if (!p) return;
+  var src = $('#srcText').value;
+  if (!src.trim()) { toast('เลือกไฟล์หรือวางโค้ด EA ก่อน', true); return; }
+  var r = Core.patchEA(src, p, rawUrlOf(p));
+  if (r.error) { T.buildOut = { pid: p.id, error: r.error }; renderBuild(); return; }
+  var name = Core.slug(p.name).replace(/-/g, '_') + '_release.mq5';
+  T.buildOut = { pid: p.id, text: r.text, name: name, changed: r.changed };
+  S.built[p.id] = { fp: Core.fingerprint(p), t: Date.now() }; save();
+  emit('ea.built', { product: p.id, fingerprint: Core.fingerprint(p) });
+  renderShell(); renderBuild();
+}
+H.dlea = function () { var o = T.buildOut; if (!o) return; saveFile(eaFilename(o.name), '﻿' + o.text).then(function (r) { if (r === 'saved') toast('ส่งไฟล์ให้ดาวน์โหลดแล้ว'); else if (r === 'unavailable') toast('ดาวน์โหลดไม่ได้ในหน้านี้ ใช้ปุ่มคัดลอก', true); }); };
+H.copyea = function () { var o = T.buildOut; if (!o) return; copyText(o.text).then(function (ok) { toast(ok ? 'คัดลอกโค้ดแล้ว วางลงไฟล์ใหม่ใน MetaEditor' : 'คัดลอกอัตโนมัติไม่ได้ ใช้ปุ่มดาวน์โหลด', !ok); }); };
+
+function doCheck() {
+  var out = $('#chkResult');
+  if (!S.products.length) { out.innerHTML = '<div class="note warn">ยังไม่มีผลิตภัณฑ์ในแอปนี้</div>'; return; }
+  var r = Core.parseEaLine($('#chkText').value);
+  if (!r) { out.innerHTML = '<div class="note bad">อ่านบรรทัดไม่ได้ ต้องเป็นบรรทัดที่ขึ้นว่า License ID: … (login … | … | …) ทั้งบรรทัด</div>'; return; }
+  var hit = S.products.filter(function (p) { return Core.idFor(p, r.login, r.company, r.server) === r.id; })[0];
+  var cur = curProd(), mine = cur ? Core.idFor(cur, r.login, r.company, r.server) : '';
+  var read = '<p class="small muted" style="margin:8px 0 0">แอปอ่านได้: login <span class="mono">' + esc(r.login) + '</span> · บริษัท <span class="mono">' + esc(r.company) + '</span> · เซิร์ฟเวอร์ <span class="mono">' + esc(r.server) + '</span><br>ID จาก EA <span class="mono">' + esc(r.id.slice(0, 12)) + '…</span>' + (mine ? ' · ID ที่แอปคำนวณ (' + esc(cur.name) + ') <span class="mono">' + esc(mine.slice(0, 12)) + '…</span>' : '') + '</p>';
+  if (hit) out.innerHTML = '<div class="note ok"><b>ตรงกัน</b> EA ตัวนี้ฝังกุญแจของผลิตภัณฑ์ “' + esc(hit.name) + '”' + (cur && hit.id !== cur.id ? ' (ไม่ใช่ผลิตภัณฑ์ที่เปิดอยู่ ลองสลับที่ด้านบน)' : '') + ' ถ้า EA ยังบอกลายเซ็นไม่ถูกต้อง ให้ตรวจไฟล์บน GitHub ที่แท็บเผยแพร่ รอแคช 5 นาที แล้วลาก EA ลงชาร์ตใหม่</div>' + read;
+  else out.innerHTML = '<div class="note bad"><b>ไม่ตรงกับผลิตภัณฑ์ใดในแอปนี้</b> EA ที่รันอยู่ฝังกุญแจคนละชุด หรือยังเป็นไฟล์เก่า สร้างไฟล์ Release ใหม่ที่ด้านบน คอมไพล์ให้ได้ 0 errors ลาก EA ลงชาร์ตใหม่ แล้วตรวจอีกครั้ง</div>' + read;
+}
+document.addEventListener('click', function (e) {
+  if (e.target.closest('#btnBuild')) doBuild();
+  if (e.target.closest('#btnChk')) doCheck();
+});
+
+/* ---- 60-ui-config.js ---- */
+/* =====================================================================
+   60-ui-config.js  -  settings: products + keys, GitHub, data backup, connections, appearance
+   Field edits save on "change" and do NOT re-render this tab (so typing is never interrupted).
+   ===================================================================== */
+function renderConfig() {
+  var el = $('#p-config'), h = '';
+
+  /* products & keys */
+  h += '<div class="card"><h2>ผลิตภัณฑ์ (EA) และกุญแจ</h2><p class="small muted">แต่ละผลิตภัณฑ์มีกุญแจและไฟล์รายชื่อของตัวเอง ลูกค้าของ EA หนึ่งตัวจึงไม่เกี่ยวกับอีกตัว</p>';
+  S.products.forEach(function (p) {
+    var open = !!T.reveal[p.id];
+    h += '<div class="prod"><div class="ph"><b>' + esc(p.name) + '</b>' + (p.id === S.cur ? pill('ok', 'เปิดอยู่') : '') + '<span class="muted small">กุญแจรหัส <span class="mono">' + Core.fingerprint(p) + '</span> · ลูกค้า ' + rowsOf(p.id).length + '</span></div>' +
+      '<div class="row2"><div><label for="pn_' + p.id + '">ชื่อผลิตภัณฑ์</label><input type="text" id="pn_' + p.id + '" data-pname="' + p.id + '" value="' + esc(p.name) + '" maxlength="60"></div>' +
+      '<div><label for="pf_' + p.id + '">ชื่อไฟล์รายชื่อบน GitHub</label><input type="text" id="pf_' + p.id + '" data-pfile="' + p.id + '" value="' + esc(p.file) + '" autocomplete="off"></div></div>' +
+      '<div class="btns">' + (p.id === S.cur ? '' : '<button type="button" class="btn sm" data-act="setcur" data-id="' + p.id + '">เปิดผลิตภัณฑ์นี้</button>') +
+      '<button type="button" class="btn sm" data-act="revealkey" data-id="' + p.id + '">' + (open ? 'ซ่อนกุญแจ' : 'แสดงกุญแจ') + '</button><button type="button" class="btn sm" data-act="copykey" data-id="' + p.id + '">คัดลอกรหัสกุญแจ</button></div>' +
+      (open ? '<div class="keybox">SALT: ' + esc(p.salt) + '<br>SECRET: ' + esc(p.secret) + '<br>รหัสกุญแจ: ' + esc(Core.keyCode(p)) + '</div>' : '') +
+      '<details style="margin-top:10px"><summary class="small">จัดการกุญแจ / ลบผลิตภัณฑ์</summary>' +
+      '<label for="ki_' + p.id + '">นำเข้ารหัสกุญแจ (รูปแบบ PKTL1:…:…) เช่นจากเครื่องเดิม</label><input type="text" id="ki_' + p.id + '" autocomplete="off" placeholder="PKTL1:…">' +
+      '<div class="btns"><button type="button" class="btn sm" data-act="impkey" data-id="' + p.id + '">นำเข้ากุญแจ</button>' + armBtn('regenkey', p.id, 'สร้างกุญแจใหม่', 'กดอีกครั้ง: ID ลูกค้าเดิมจะใช้ไม่ได้', 'sm') + armBtn('delprod', p.id, 'ลบผลิตภัณฑ์', 'กดอีกครั้งเพื่อลบ', 'sm') + '</div>' +
+      '<p class="small muted" style="margin-top:8px">เปลี่ยนกุญแจแล้ว ต้องสร้างไฟล์ EA ใหม่ แจกใหม่ และขอ ID ใหม่จากลูกค้าที่ไม่ได้เพิ่มด้วยข้อมูลบัญชี</p></details></div>';
+  });
+  h += '<div class="prod"><label for="newProdName">เพิ่มผลิตภัณฑ์ใหม่ (EA ตัวอื่น)</label><input type="text" id="newProdName" autocomplete="off" maxlength="60" placeholder="เช่น PKTL Gold Scalper">' +
+    '<div class="btns"><button type="button" class="btn primary" data-act="addprod">เพิ่มผลิตภัณฑ์</button></div></div></div>';
+
+  /* GitHub */
+  h += '<div class="card"><h2>GitHub</h2><p class="small muted">repo ที่เก็บไฟล์รายชื่อ (ต้องเป็น public เพราะ EA อ่านผ่านลิงก์ raw)</p><div class="row2">' +
+    '<div><label for="cfgUser">ชื่อผู้ใช้</label><input type="text" id="cfgUser" data-cfg="user" value="' + esc(S.cfg.user) + '" autocomplete="off"></div>' +
+    '<div><label for="cfgRepo">ชื่อ repo</label><input type="text" id="cfgRepo" data-cfg="repo" value="' + esc(S.cfg.repo) + '" autocomplete="off"></div></div>' +
+    '<label for="cfgBranch">branch</label><input type="text" id="cfgBranch" data-cfg="branch" value="' + esc(S.cfg.branch) + '" autocomplete="off">';
+  if (CAN_NET) {
+    h += '<label for="cfgToken">โทเคน GitHub (ไม่บังคับ ใช้เพื่อปุ่มเผยแพร่อัตโนมัติ)</label><input type="password" id="cfgToken" autocomplete="off" placeholder="' + (getToken() ? 'บันทึกไว้แล้ว (เก็บเฉพาะในเครื่องนี้)' : 'github_pat_…') + '">' +
+      '<div class="btns"><button type="button" class="btn sm" data-act="savetoken">บันทึกโทเคน</button><button type="button" class="btn sm" data-act="testgh">ทดสอบการเชื่อมต่อ</button>' + (getToken() ? '<button type="button" class="btn sm" data-act="cleartoken">ลบโทเคน</button>' : '') + '</div>';
+    if (T.cfgMsg) h += '<div class="note ' + T.cfgMsg.k + '" style="margin-top:10px">' + esc(T.cfgMsg.t) + '</div>';
+    h += '<details style="margin-top:10px"><summary class="small">วิธีสร้างโทเคนที่ปลอดภัย</summary><ol class="small" style="padding-left:20px"><li>GitHub › Settings › Developer settings › Personal access tokens › Fine-grained tokens › Generate new token</li><li>Repository access: เลือก <b>Only select repositories</b> แล้วเลือกเฉพาะ repo รายชื่อ</li><li>Permissions › Repository permissions › <b>Contents: Read and write</b> (อย่างอื่นไม่ต้อง)</li><li>ตั้งวันหมดอายุ แล้วคัดลอกโทเคนมาวางที่นี่</li></ol><p class="small muted">โทเคนเก็บในเบราว์เซอร์เครื่องนี้เท่านั้น ไม่อยู่ในข้อมูลสำรอง แต่ใครใช้เครื่องนี้ได้ก็เห็นได้ จึงควรจำกัดสิทธิ์ตามข้างบน</p></details>';
+  } else {
+    h += '<div class="note" style="margin-top:12px">เวอร์ชันบน claude.ai เชื่อมต่อ GitHub ไม่ได้ (ข้อจำกัดความปลอดภัย) ปุ่มเผยแพร่อัตโนมัติมีในแอปติดตั้งเต็ม</div>';
+  }
+  h += '</div>';
+
+  /* data */
+  h += '<div class="card"><h2>สำรองและย้ายข้อมูล</h2><p class="small muted">ข้อมูลอยู่ในเบราว์เซอร์เครื่องนี้ ข้อความสำรองมีกุญแจอยู่ด้วย เก็บเหมือนรหัสผ่าน ห้ามโพสต์หรืออัปโหลดขึ้น GitHub</p>' +
+    '<div class="btns"><button type="button" class="btn" data-act="copybackup">คัดลอกข้อความสำรอง</button><button type="button" class="btn" data-act="dlbackup">ดาวน์โหลดไฟล์สำรอง (.json)</button></div>' +
+    '<label for="restoreText">กู้คืนจากข้อความหรือไฟล์สำรอง (แทนที่ข้อมูลปัจจุบันทั้งหมด)</label><textarea id="restoreText" class="short" spellcheck="false" placeholder="PKTLBK1:… หรือเนื้อไฟล์ .json"></textarea>' +
+    '<div class="btns">' + armBtn('restore', 'x', 'กู้คืน', 'กดอีกครั้งเพื่อแทนที่ข้อมูลทั้งหมด') + armBtn('resetall', 'x', 'ล้างข้อมูลทั้งหมดในเครื่องนี้', 'กดอีกครั้งเพื่อล้างจริง') + '</div></div>';
+
+  /* connections */
+  h += '<div class="card"><h2>การเชื่อมต่อ (สำหรับต่อยอด)</h2><p class="small muted">ช่องทางให้แอปอื่นหรือระบบอัตโนมัติรับรู้เหตุการณ์ เช่นเพิ่มลูกค้า เผยแพร่ ดูรายละเอียดในคู่มือหัวข้อ “เชื่อมต่อ” ข้อมูลที่ส่งออกไม่มีกุญแจ</p>';
+  if (CAN_NET) h += '<label for="hookUrl">Webhook URL (https) ส่ง JSON ทุกครั้งที่มีเหตุการณ์</label><input type="url" id="hookUrl" data-hook="webhook" value="' + esc(S.hooks.webhook) + '" autocomplete="off" placeholder="https://example.com/hook"><div class="btns"><button type="button" class="btn sm" data-act="testhook">ส่งเหตุการณ์ทดสอบ</button></div>';
+  h += '<label class="check" style="margin-top:14px"><input type="checkbox" id="bridgeOn" data-hookchk="bridge"' + (S.hooks.bridge ? ' checked' : '') + '> เปิดสะพาน postMessage (ให้หน้าเว็บ/แอปที่ฝังแอปนี้ควบคุมได้)</label>' +
+    '<label for="hookOrigin">Origin ที่อนุญาต (เช่น https://hub.example.com)</label><input type="url" id="hookOrigin" data-hook="origin" value="' + esc(S.hooks.origin) + '" autocomplete="off" placeholder="https://hub.example.com"></div>';
+
+  /* appearance & install */
+  h += '<div class="card"><h2>แอปและหน้าตา</h2>';
+  if (TARGET !== 'artifact') h += '<label for="themeSel">ธีม</label><select id="themeSel" data-themesel="1"><option value="auto"' + (S.ui.theme === 'auto' ? ' selected' : '') + '>ตามอุปกรณ์</option><option value="dark"' + (S.ui.theme === 'dark' ? ' selected' : '') + '>มืด</option><option value="light"' + (S.ui.theme === 'light' ? ' selected' : '') + '>สว่าง</option></select>';
+  if (TARGET === 'pwa') {
+    if (isStandalone()) h += '<p style="margin-top:12px"><span class="pill ok">ติดตั้งแล้ว</span> กำลังเปิดในโหมดแอป</p>';
+    else if (installEvt) h += '<div class="btns"><button type="button" class="btn primary" data-act="install">ติดตั้งแอปลงเครื่องนี้</button></div>';
+    else h += '<p class="small muted" style="margin-top:12px">ติดตั้ง: Android/Chrome เมนู ⋮ › ติดตั้งแอป · iPhone/Safari ปุ่มแชร์ › เพิ่มลงหน้าจอโฮม · คอมพิวเตอร์ Chrome/Edge ไอคอนติดตั้งที่แถบที่อยู่</p>';
+  } else if (TARGET === 'artifact') h += '<p class="small muted">หน้านี้เปิดอยู่ใน claude.ai ติดตั้งลงเครื่องไม่ได้ ดูวิธีติดตั้งแอปเต็มในคู่มือ</p>';
+  else h += '<p class="small muted">เปิดจากไฟล์ในเครื่อง ใช้งานออฟไลน์ได้ ถ้าต้องการติดตั้งเป็นแอป ให้โฮสต์ไฟล์ชุดติดตั้ง (ดูคู่มือ)</p>';
+  h += '<p class="small muted" style="margin-top:12px">PKTL License Manager v' + esc(APP_VERSION) + ' · build ' + esc(BUILD_ID) + ' · ' + esc(TARGET) + '</p></div>';
+  el.innerHTML = h;
+}
+
+/* ---------- field edits (save only) ---------- */
+document.addEventListener('change', function (e) {
+  var el = e.target, v = el.value;
+  if (el.dataset.cfg) {
+    v = v.trim();
+    var ok = el.dataset.cfg === 'branch' ? /^[A-Za-z0-9_.\/-]+$/.test(v) : /^[A-Za-z0-9_.-]+$/.test(v);
+    if (!ok) { toast('ใช้ได้เฉพาะตัวอักษร ตัวเลข . _ - ' + (el.dataset.cfg === 'branch' ? '/' : ''), true); el.value = S.cfg[el.dataset.cfg]; return; }
+    S.cfg[el.dataset.cfg] = v; save(); renderShell();
+  } else if (el.dataset.pname) {
+    var p = prodById(el.dataset.pname); v = v.trim(); if (!p) return;
+    if (!v) { el.value = p.name; toast('ชื่อห้ามว่าง', true); return; }
+    p.name = v; save(); renderShell();
+  } else if (el.dataset.pfile) {
+    var q = prodById(el.dataset.pfile); v = v.trim(); if (!q) return;
+    if (!/^[A-Za-z0-9_.\/-]+$/.test(v) || /^\/|\.\./.test(v)) { el.value = q.file; toast('ชื่อไฟล์ใช้ได้เฉพาะตัวอักษร ตัวเลข . _ - /', true); return; }
+    if (S.products.some(function (o) { return o.id !== q.id && o.file === v; })) { el.value = q.file; toast('ชื่อไฟล์นี้ถูกใช้โดยผลิตภัณฑ์อื่น', true); return; }
+    q.file = v; save(); toast('เปลี่ยนชื่อไฟล์แล้ว ต้องสร้างไฟล์ EA ใหม่ เพราะ URL เปลี่ยน');
+  } else if (el.dataset.hook) {
+    v = v.trim();
+    var okUrl = el.dataset.hook === 'origin' ? /^(https:\/\/[^\s\/]+|http:\/\/(localhost|127\.0\.0\.1)(:\d+)?)\/?$/.test(v) : /^https:\/\/[^\s]+$/.test(v);
+    if (v && !okUrl) { toast(el.dataset.hook === 'origin' ? 'Origin ต้องเป็น https://โดเมน (ทดสอบในเครื่องใช้ http://localhost ได้) ไม่ใส่พาธ' : 'ต้องขึ้นต้นด้วย https://', true); el.value = S.hooks[el.dataset.hook]; return; }
+    S.hooks[el.dataset.hook] = el.dataset.hook === 'origin' ? v.replace(/\/+$/, '') : v; save();
+  } else if (el.dataset.hookchk) {
+    S.hooks[el.dataset.hookchk] = el.checked; save();
+    if (el.checked && !S.hooks.origin) toast('กรอก Origin ที่อนุญาตด้วย สะพานจะไม่ทำงานถ้าไม่ระบุ');
+  } else if (el.dataset.themesel) {
+    S.ui.theme = v; save(); applyTheme();
+  }
+});
+
+/* ---------- actions ---------- */
+H.addprod = function () {
+  try { addProduct($('#newProdName').value); toast('เพิ่มผลิตภัณฑ์แล้ว สร้างกุญแจให้อัตโนมัติ'); renderAll(); } catch (e) { toast(e.message, true); }
+};
+H.revealkey = function (b) { T.reveal[b.dataset.id] = !T.reveal[b.dataset.id]; renderTab(); };
+H.copykey = function (b) { var p = prodById(b.dataset.id); copyText(Core.keyCode(p)).then(function (ok) { toast(ok ? 'คัดลอกรหัสกุญแจแล้ว เก็บในที่ปลอดภัย' : 'คัดลอกอัตโนมัติไม่ได้ กด “แสดงกุญแจ” แล้วคัดลอกเอง', !ok); if (!ok) { T.reveal[p.id] = true; renderTab(); } }); };
+H.impkey = function (b) {
+  var p = prodById(b.dataset.id), k = Core.parseKeyCode($('#ki_' + b.dataset.id).value);
+  if (!k) { toast('รูปแบบไม่ถูกต้อง ต้องขึ้นต้น PKTL1: ตามด้วย SALT และ SECRET', true); return; }
+  setKeys(p, k, 'import'); toast('นำเข้ากุญแจแล้ว'); renderAll();
+};
+H.regenkey = function (b) {
+  var p = prodById(b.dataset.id), keep = 0, drop = 0;
+  setKeys(p, Core.newKeys(), 'regenerate');
+  S.rows[p.id] = rowsOf(p.id).filter(function (r) {
+    if (r.acct) { r.id = Core.idFor(p, r.acct.login, r.acct.company, r.acct.server); keep++; return true; }
+    drop++; return false;
+  });
+  save(); toast('สร้างกุญแจใหม่แล้ว คำนวณ ID ใหม่ ' + keep + ' รายการ ต้องขอ ID ใหม่ ' + drop + ' รายการ (ลบออกจากรายชื่อแล้ว)'); renderAll();
+};
+H.delprod = function (b) { removeProduct(b.dataset.id); toast('ลบผลิตภัณฑ์แล้ว'); renderAll(); };
+H.savetoken = function () {
+  var v = ($('#cfgToken').value || '').trim();
+  if (!v) { toast('วางโทเคนก่อน', true); return; }
+  lsSet(LS_TOKEN, v); T.cfgMsg = { k: 'ok', t: 'บันทึกโทเคนแล้ว กด “ทดสอบการเชื่อมต่อ” เพื่อตรวจสิทธิ์' }; renderTab();
+};
+H.cleartoken = function () { lsDel(LS_TOKEN); T.cfgMsg = { k: 'ok', t: 'ลบโทเคนแล้ว' }; renderTab(); };
+H.testgh = function () {
+  var typed = ($('#cfgToken').value || '').trim(); if (typed) lsSet(LS_TOKEN, typed);
+  T.cfgMsg = { k: 'ok', t: 'กำลังทดสอบ…' }; renderTab();
+  ghTest().then(function (r) {
+    T.cfgMsg = r.canPush ? { k: 'ok', t: 'เชื่อมต่อ ' + r.name + ' ได้ และมีสิทธิ์เขียน' + (r.private ? ' (repo นี้เป็น private: EA จะอ่านลิงก์ raw ไม่ได้ ต้องเป็น public)' : '') } : { k: 'warn', t: 'เชื่อมต่อ ' + r.name + ' ได้ แต่โทเคนไม่มีสิทธิ์เขียน ต้องเป็น Contents: Read and write' };
+  }, function (e) { T.cfgMsg = { k: 'bad', t: 'ทดสอบไม่สำเร็จ: ' + (e.message || e) }; }).then(renderTab);
+};
+H.testhook = function () { if (!S.hooks.webhook) { toast('กรอก Webhook URL ก่อน', true); return; } emit('test.ping', { product: S.cur }); toast('ส่งเหตุการณ์ test.ping แล้ว (ไม่มีการยืนยันกลับ ดูที่ปลายทาง)'); };
+H.copybackup = function () { copyText(backupCode()).then(function (ok) { toast(ok ? 'คัดลอกข้อความสำรองแล้ว เก็บในที่ปลอดภัย' : 'คัดลอกอัตโนมัติไม่ได้ ใช้ปุ่มดาวน์โหลดแทน', !ok); }); };
+H.dlbackup = function () { saveFile('pktl-license-backup-' + Core.dotDate(new Date()).replace(/\./g, '') + '.json', JSON.stringify(S, null, 2), 'application/json').then(function (r) { if (r === 'saved') toast('ส่งไฟล์ให้ดาวน์โหลดแล้ว เก็บเหมือนรหัสผ่าน'); else if (r === 'unavailable') toast('ดาวน์โหลดไม่ได้ในหน้านี้ ใช้ปุ่มคัดลอก', true); }); };
+H.restore = function () {
+  var st = parseBackup($('#restoreText').value);
+  if (!st) { toast('อ่านข้อมูลสำรองไม่ได้ ต้องขึ้นต้น PKTLBK1: หรือเป็นไฟล์ .json ที่ได้จากแอปนี้', true); return; }
+  S = st; save(); emit('backup.restored', {}); toast('กู้คืนแล้ว ' + S.products.length + ' ผลิตภัณฑ์'); resetForm(); renderAll();
+};
+H.resetall = function () { S = normalize(defaultState()); save(); lsDel(LS_TOKEN); T.buildOut = null; resetForm(); toast('ล้างข้อมูลแล้ว'); renderAll(); };
+H.install = function () { if (!installEvt) return; installEvt.prompt(); installEvt.userChoice.then(function () { installEvt = null; renderTab(); }); };
+
+/* ---- 70-ui-guide.js ---- */
+/* =====================================================================
+   70-ui-guide.js  -  คู่มือ (manual tab)
+     use  = 5.1 วิธีใช้แอป
+     add  = 5.2 วิธีนำ EA ตัวอื่นมาเพิ่มสิทธิ์แบบนี้
+     dev  = ช่องทางเชื่อมต่ออนาคต (events / webhook / API / bridge / backup schema)
+     faq  = แก้ปัญหา + ข้อจำกัด
+   Content is plain strings so it is easy to edit.
+   ===================================================================== */
+var GUIDE_TABS = [['use', 'วิธีใช้แอป'], ['add', 'เพิ่ม EA อื่น'], ['dev', 'เชื่อมต่อ'], ['faq', 'แก้ปัญหา']];
+var codeSeq = 0;
+function codeblk(text) { var id = 'cb' + (++codeSeq); return '<div class="codeblk"><pre id="' + id + '">' + esc(text) + '</pre><button type="button" class="btn sm" data-act="copycode" data-id="' + id + '">คัดลอก</button></div>'; }
+function table(head, rows) { return '<div class="tablewrap"><table style="min-width:' + (head.length > 2 ? 520 : 0) + 'px"><thead><tr>' + head.map(function (x) { return '<th>' + x + '</th>'; }).join('') + '</tr></thead><tbody>' + rows.map(function (r) { return '<tr>' + r.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>'; }
+function ol(items) { return '<ol>' + items.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ol>'; }
+function ul(items) { return '<ul>' + items.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>'; }
+
+function guideUse() {
+  var p = curProd();
+  return '<h2><span class="badge">5.1</span>วิธีใช้แอป</h2>' +
+    '<p>แอปนี้ทำ 3 อย่าง: เซ็นรายชื่อลูกค้าที่ได้สิทธิ์ใช้ EA, ส่งไฟล์รายชื่อขึ้น GitHub, และสร้างไฟล์ EA ที่ฝังกุญแจให้ ตัว EA ของลูกค้าจะอ่านไฟล์นั้นตอนเปิด แล้วตรวจว่าบัญชีเทรดของเขาอยู่ในรายชื่อและยังไม่หมดอายุ</p>' +
+    '<div class="note"><b>ภาพรวมการทำงาน</b><br>คุณเพิ่มลูกค้าในแอป › แอปเซ็นไฟล์ด้วยกุญแจลับ › ไฟล์ขึ้น GitHub › EA ลูกค้าดึงไฟล์ตอนเริ่มทำงาน › ตรวจลายเซ็นและวันหมดอายุ › เปิดหรือบล็อกการเข้าออเดอร์ใหม่ (ออเดอร์ที่เปิดอยู่ยังถูกดูแลต่อ)</div>' +
+    '<h3>เมนู 6 แท็บ</h3>' + table(['แท็บ', 'ใช้ทำอะไร'], [
+      ['ภาพรวม', 'ดูความพร้อม ขั้นต่อไปที่ต้องทำ และลูกค้าที่ใกล้หมดอายุ'],
+      ['ลูกค้า', 'เพิ่ม แก้ไข ต่ออายุ ลบ ค้นหาลูกค้า'],
+      ['เผยแพร่', 'ส่งไฟล์รายชื่อขึ้น GitHub และตรวจไฟล์จริง'],
+      ['สร้าง EA', 'ฝังกุญแจลงไฟล์ EA และตรวจว่ากุญแจตรงกับ EA ที่รันอยู่'],
+      ['คู่มือ', 'หน้านี้'],
+      ['ตั้งค่า', 'ผลิตภัณฑ์ กุญแจ GitHub สำรองข้อมูล การเชื่อมต่อ']
+    ]) +
+    '<h3>A. ตั้งค่าครั้งแรก (ทำครั้งเดียวต่อ EA)</h3>' + ol([
+      'หน้าภาพรวม ตั้งชื่อผลิตภัณฑ์ (ชื่อ EA) แล้วกดสร้าง แอปสร้างกุญแจให้เอง ไม่ต้องคิดรหัสเอง',
+      'แท็บตั้งค่า › GitHub ใส่ชื่อผู้ใช้ ชื่อ repo และ branch ของ repo ที่เป็น <b>public</b>',
+      'แท็บสร้าง EA เลือกไฟล์ .mq5 ต้นฉบับ (หรือวางโค้ด) กด “สร้างไฟล์ Release” แล้วดาวน์โหลดหรือคัดลอก',
+      'เปิดใน MetaEditor กด F7 ต้องได้ <b>0 errors</b> จะได้ไฟล์ .ex5',
+      'ใน MT5: Tools › Options › Expert Advisors › ติ๊ก <b>Allow WebRequest for listed URL</b> แล้วเพิ่ม <span class="mono">https://raw.githubusercontent.com</span> (ลูกค้าทุกคนต้องทำข้อนี้ด้วย)',
+      'ติ๊ก “ทำแล้ว” ในเช็กลิสต์หน้าภาพรวมสำหรับข้อคอมไพล์'
+    ]) +
+    '<h3>B. เพิ่มลูกค้า</h3><p>ลูกค้าแต่ละบัญชีเทรดมี <b>License ID</b> ของตัวเอง ขอจากลูกค้าด้วยวิธีนี้ (แนะนำที่สุด):</p>' + ol([
+      'ให้ลูกค้าลาก EA ลงชาร์ตหนึ่งครั้ง (ยังบล็อกอยู่ก็ไม่เป็นไร)',
+      'เปิดแท็บ <b>Experts</b> ใน MT5 หาบรรทัดที่ขึ้นว่า <span class="mono">License ID: …… (login … | … | …)</span>',
+      'คลิกบรรทัดนั้น กด Ctrl+C แล้วส่งให้คุณ (ถ่ายภาพหน้าจอไม่แนะนำ เพราะอ่าน ID ผิดง่าย)',
+      'แท็บลูกค้า › “มี ID แล้ว” วางทั้งบรรทัดได้เลย แอปหยิบ ID ให้เอง ใส่รหัสลูกค้าและวันหมดอายุ กดเพิ่ม'
+    ]) +
+    '<p class="small muted">ทางเลือก: “กรอกข้อมูลบัญชี” ใส่เลขบัญชี ชื่อบริษัทโบรกเกอร์ และเซิร์ฟเวอร์ แล้วแอปคำนวณ ID ให้ ต้องพิมพ์ตรงกับที่ MT5 แสดงทุกตัวอักษร ถ้าผิดนิดเดียว ID จะไม่ตรง ใช้ตรวจด้วยกล่อง “ตรวจว่ากุญแจตรงกับ EA” ในแท็บสร้าง EA</p>' +
+    '<h3>C. ต่ออายุ ระงับ ลบ</h3>' + ul([
+      '<b>ต่ออายุ</b>: กด +30 / +90 / +1 ปี ที่แถวลูกค้า นับจากวันหมดอายุเดิม (ถ้าหมดไปแล้วนับจากวันนี้) หรือกดแก้ไขเพื่อตั้งวันเอง',
+      '<b>ระงับสิทธิ์</b>: ลบลูกค้าออก หรือตั้งวันหมดอายุเป็นเมื่อวาน แล้วเผยแพร่',
+      'การเปลี่ยนมีผลกับ EA ตอนที่ EA <b>เริ่มทำงานครั้งถัดไป</b> (ลากลงชาร์ตใหม่ หรือเปิด MT5 ใหม่) ไม่ได้ตัดทันทีขณะรัน เพราะตั้งค่าไว้ให้ตรวจตอนเริ่มเท่านั้น',
+      'ถ้าเว็บ GitHub ล่ม บัญชีที่เคยยืนยันผ่านแล้วจะได้ช่วงผ่อนผัน 2 ชั่วโมงนับจากการตรวจพลาดครั้งแรก บัญชีที่ไม่เคยยืนยันผ่านไม่มีช่วงผ่อนผัน'
+    ]) +
+    '<h3>D. เผยแพร่</h3>' + ul([
+      'ทุกครั้งที่เพิ่ม แก้ ลบ ลูกค้า จุดสีเหลืองจะขึ้นที่แท็บเผยแพร่และแถบด้านบนเขียนว่า “ยังไม่เผยแพร่”',
+      '<b>แอปติดตั้งเต็ม</b>: ใส่โทเคน GitHub ครั้งเดียวที่ตั้งค่า แล้วกด “เผยแพร่ขึ้น GitHub” ปุ่มเดียวจบ',
+      '<b>วางเอง</b> (ใช้ได้ทุกเวอร์ชัน): คัดลอกไฟล์ › เปิดหน้าแก้ไขบน GitHub › วางทับทั้งหมด › Commit › กลับมากด “ฉันวางแล้ว”',
+      'GitHub เก็บแคชลิงก์ raw ราว 5 นาที เผยแพร่แล้วอาจต้องรอก่อนที่ EA จะเห็นฉบับใหม่'
+    ]) +
+    '<h3>E. สร้างและแจก EA</h3>' + ul([
+      'แจกเฉพาะไฟล์ <b>.ex5</b> ให้ลูกค้า ห้ามแจก .mq5 ที่สร้างจากแอป เพราะมีกุญแจลับอยู่ข้างใน',
+      'ถ้าเปลี่ยนกุญแจ ชื่อไฟล์รายชื่อ หรือ repo ต้องสร้างไฟล์ EA ใหม่และแจกใหม่ทุกคน',
+      'ก่อนแจกจริงให้ทดสอบบนบัญชีเดโมของคุณเอง ต้องเห็นบรรทัด <span class="mono">License OK</span> ในแท็บ Experts'
+    ]) +
+    '<h3>F. ติดตั้งแอปบนมือถือและคอมพิวเตอร์</h3>' + ul([
+      'เวอร์ชันบน claude.ai ใช้งานได้ทันทีแต่ติดตั้งลงเครื่องและกดเผยแพร่อัตโนมัติไม่ได้',
+      'แอปติดตั้งเต็มคือไฟล์ชุดติดตั้ง (zip) นำไปโฮสต์เป็นเว็บ https ของคุณเอง ง่ายสุดคือ GitHub Pages (ขั้นตอนอยู่ในไฟล์ HOSTING.md ในชุด) เปิดลิงก์นั้นบนมือถือแล้วติดตั้ง',
+      'Android (Chrome): เมนู ⋮ › ติดตั้งแอป · iPhone (Safari): ปุ่มแชร์ › เพิ่มลงหน้าจอโฮม · คอมพิวเตอร์ (Chrome/Edge): ไอคอนติดตั้งที่แถบที่อยู่',
+      'ไฟล์ PKTL_License_Manager.html ในชุด เป็นแอปไฟล์เดียว ดับเบิลคลิกเปิดในเบราว์เซอร์ได้เลย ใช้งานออฟไลน์ แต่ติดตั้งเป็นแอปไม่ได้'
+    ]) +
+    '<h3>G. สำรองข้อมูลและย้ายเครื่อง</h3>' + ul([
+      'ข้อมูลทั้งหมดอยู่ในเบราว์เซอร์เครื่องที่ใช้ มือถือกับคอมไม่ได้ซิงก์กันเอง',
+      'ตั้งค่า › คัดลอกข้อความสำรอง ส่งให้ตัวเอง (เช่นโน้ตส่วนตัวที่ล็อก) แล้ววางที่ช่องกู้คืนในอีกเครื่อง',
+      'ข้อความสำรองมีกุญแจลับ ห้ามโพสต์สาธารณะ ห้ามอัปโหลดขึ้น GitHub'
+    ]);
+}
+
+function guideAdd() {
+  var p = curProd();
+  var urlEx = p ? Core.rawUrl(S.cfg, 'licenses-ชื่อใหม่.txt').replace('ชื่อใหม่', 'my-ea') : 'https://raw.githubusercontent.com/USER/REPO/main/licenses-my-ea.txt';
+  var snipA = '#define PKTL_LIC_ENABLED   false\n#define PKTL_LIC_URL       "' + urlEx + '"\n#define PKTL_LIC_SALT      "CHANGE_ME_SALT_AT_LEAST_12_CHARS"\n#define PKTL_LIC_SECRET    "CHANGE_ME_SECRET_AT_LEAST_16_CHARS"\n#include <PKTL_License.mqh>';
+  var snipB = 'int OnInit()\n{\n   PktlLicInit("MyEA");        // ชื่อสั้น ๆ ตัวอังกฤษ/ตัวเลข ใช้แยกสถานะของ EA แต่ละตัว\n   EventSetTimer(5);           // ให้ตรวจซ้ำได้แม้ตลาดปิดและไม่มี tick\n   // ... โค้ดเดิมของ EA ...\n   return INIT_SUCCEEDED;\n}\n\nvoid OnDeinit(const int reason)\n{\n   EventKillTimer();\n   PktlLicDeinit();\n   // ... โค้ดเดิม ...\n}\n\nvoid OnTimer()\n{\n   PktlLicTick();\n}\n\nvoid OnTick()\n{\n   PktlLicTick();\n   // ... จัดการออเดอร์ที่เปิดอยู่ตามเดิม (ไม่ต้องบล็อก) ...\n\n   string why = "";\n   if(!PktlLicAllowsEntries(why))\n   {\n      Comment("License: ", why);\n      return;                  // ไม่เปิดออเดอร์ใหม่\n   }\n   // ... โค้ดเข้าออเดอร์เดิม ...\n}';
+  return '<h2><span class="badge">5.2</span>นำ EA ตัวอื่นมาเพิ่มสิทธิ์แบบนี้</h2>' +
+    '<p>EA ตัวอื่นใช้ระบบเดียวกันได้ โดยใส่ไฟล์ <span class="mono">PKTL_License.mqh</span> เพิ่มเข้าไป 1 ไฟล์ แก้โค้ดเดิมไม่กี่บรรทัด แล้วให้แอปฝังกุญแจให้ ลูกค้าของแต่ละ EA แยกกัน กุญแจแยกกัน และใช้แอปตัวเดียวจัดการทั้งหมด</p>' +
+    '<div class="note warn">ไฟล์ .mqh และ EA ตัวอย่างในชุดนี้ยังไม่ได้คอมไพล์ทดสอบกับ MetaEditor จริง (ผู้เขียนไม่มีตัวคอมไพล์) ให้ลองกับ <span class="mono">PKTL_License_Demo.mq5</span> บนเดโมก่อนนำไปใส่ EA จริง ถ้าคอมไพล์แล้วมี error ให้ส่งข้อความ error ทั้งหมดมาแก้</div>' +
+    '<h3>ขั้นตอน</h3>' + ol([
+      '<b>ติดตั้งไฟล์ include</b>: MetaEditor › File › Open Data Folder › MQL5 › Include แล้ววางไฟล์ <span class="mono">PKTL_License.mqh</span> (อยู่ในโฟลเดอร์ mql5 ของชุดติดตั้ง) ทำครั้งเดียว ใช้ได้กับทุก EA',
+      '<b>เพิ่ม 5 บรรทัดไว้บนสุดของ EA</b> (ก่อน input) ค่าตัวอย่างเป็นค่าสำรอง แอปจะเขียนทับให้ตอนสร้างไฟล์:' + codeblk(snipA),
+      '<b>เรียกใช้ 4 จุดในโค้ด EA</b> OnInit, OnDeinit, OnTimer, OnTick ตามตัวอย่าง ถ้า EA มี OnTimer หรือ EventSetTimer อยู่แล้ว ให้เพิ่ม <span class="mono">PktlLicTick();</span> เข้าไปในของเดิม:' + codeblk(snipB),
+      '<b>บล็อกเฉพาะการเข้าออเดอร์ใหม่</b> ตรงจุดที่ EA จะส่งคำสั่งซื้อขาย ตรวจ <span class="mono">PktlLicAllowsEntries(why)</span> ก่อนเสมอ ส่วนการปิดออเดอร์ ย้าย SL/TP ปล่อยทำงานตามปกติ เพื่อไม่ให้ลูกค้าติดค้างออเดอร์เปิด',
+      '<b>แอป › ตั้งค่า › เพิ่มผลิตภัณฑ์</b> ตั้งชื่อ EA ใหม่ แอปสร้างกุญแจและตั้งชื่อไฟล์รายชื่อแยกให้',
+      '<b>แอป › สร้าง EA</b> เลือกผลิตภัณฑ์ใหม่ที่ตัวเลือกด้านบน เลือกไฟล์ .mq5 ของ EA ที่เพิ่งแก้ กด “สร้างไฟล์ Release”',
+      '<b>คอมไพล์</b> F7 ต้อง 0 errors แล้วลองบนเดโม ดูแท็บ Experts จะเห็น <span class="mono">License ID: …</span> และไฟล์ ID ถูกเขียนไว้ที่ MQL5\\Files\\PKTL_License_ID_ชื่อ.txt',
+      '<b>เพิ่มลูกค้า เผยแพร่ ทดสอบ</b> เหมือนข้อ 5.1 ต้องเห็น <span class="mono">License OK</span>'
+    ]) +
+    '<h3>สิ่งที่ต้องจำ</h3>' + ul([
+      'ID ผูกกับกุญแจของผลิตภัณฑ์ บัญชีเดียวกันใน EA สองตัวจึงมี ID คนละค่า ต้องขอ ID แยกแต่ละ EA (EA ที่ลงชาร์ตเดียวกันจะ Print ID ของตัวเองใน Experts)',
+      'ค่าเริ่มต้น: ตรวจตอนเริ่มเท่านั้น ผ่อนผัน 2 ชั่วโมงเมื่อ GitHub ล่ม ลองใหม่ทุก 10 นาทีถ้ายังไม่ผ่าน ปรับได้ด้วย <span class="mono">#define PKTL_LIC_GRACE_HOURS / PKTL_LIC_RETRY_MINUTES / PKTL_LIC_RECHECK_HOURS</span> ก่อน #include',
+      'ใน Strategy Tester ระบบไม่ตรวจสิทธิ์ (ทดสอบย้อนหลังได้ปกติ)',
+      'EA เวอร์ชัน PKTL NY Prop v1.20 มีโมดูลเดียวกันฝังอยู่แล้ว (ชื่อ LIC_*) ไม่ต้องแก้ แอปรองรับทั้งสองรูปแบบชื่อ',
+      'MT4 ยังไม่รองรับ (ยังไม่ได้เขียนและทดสอบ)'
+    ]);
+}
+
+function guideDev() {
+  var payload = '{\n  "app": "pktl-license-manager",\n  "v": 2,\n  "event": "customer.added",\n  "at": "2026-11-05T09:30:00.000Z",\n  "product": { "id": "p1", "name": "PKTL NY Prop v1" },\n  "data": { "product": "p1", "id": "<64 hex>", "exp": "2026.12.05", "label": "c001" }\n}';
+  var api = '// ในคอนโซลของแอป หรือจากโค้ดที่ฝังแอปไว้\nPKTL.products();                         // รายการผลิตภัณฑ์ (ไม่มีกุญแจ)\nPKTL.customers("p1");                    // ลูกค้าของผลิตภัณฑ์\nPKTL.addCustomer({ product: "p1", id: "<64 hex>", exp: "2027.01.31", label: "c002" });\nPKTL.addCustomer({ product: "p1", account: { login: "123", company: "Broker Ltd", server: "Broker-Live" }, exp: "never" });\nPKTL.removeCustomer({ product: "p1", id: "<64 hex>" });\nPKTL.buildList({ product: "p1" });       // ไฟล์ที่เซ็นแล้ว (ข้อความ)\nPKTL.publish({ product: "p1" });         // ต้องเป็นแอปติดตั้งเต็มที่ตั้งโทเคนไว้\nPKTL.on("*", function (e) { console.log(e.event, e.data); });';
+  var bridge = '// หน้าแม่ (origin ต้องตรงกับที่ตั้งในแอป) ส่งคำสั่งเข้า iframe ของแอป\nframe.contentWindow.postMessage({ pktl: 1, id: 1, method: "customers", params: { product: "p1" } }, "https://แอปของคุณ");\nwindow.addEventListener("message", function (e) {\n  if (e.data && e.data.pktl === 1) console.log(e.data);   // { pktl:1, id:1, ok:true, result:[...] }  หรือ { pktl:1, event:{...} }\n});';
+  return '<h2>เชื่อมต่อกับระบบอื่นในอนาคต</h2>' +
+    '<p>แอปออกแบบให้ต่อยอดเป็นแอปครบวงจรได้ โดยไม่ต้องแก้แกนกลาง มี 4 ช่องทาง ทุกช่องทางไม่ส่งกุญแจออกไป</p>' +
+    '<h3>1. เหตุการณ์ (events)</h3>' + table(['ชื่อ', 'เกิดเมื่อ'], [
+      ['customer.added / updated / removed', 'เพิ่ม แก้ ลบลูกค้า (รวมต่ออายุและนำเข้า)'],
+      ['product.added / removed / keys', 'เพิ่ม ลบผลิตภัณฑ์ หรือเปลี่ยนกุญแจ'],
+      ['file.published', 'เผยแพร่แล้ว (ผ่าน API หรือกด “ฉันวางแล้ว”)'],
+      ['ea.built', 'สร้างไฟล์ EA ที่ฝังกุญแจ'],
+      ['backup.restored', 'กู้คืนข้อมูลสำรอง'],
+      ['test.ping', 'ปุ่มทดสอบ webhook']
+    ]) +
+    '<h3>2. Webhook (แอปติดตั้งเต็ม)</h3><p>ตั้งค่า › การเชื่อมต่อ ใส่ URL https แอปจะ POST JSON นี้ทุกเหตุการณ์ (ส่งแบบ no-cors, Content-Type text/plain จึงไม่ต้องตั้ง CORS ที่ปลายทาง และจะไม่เห็นผลตอบกลับ) ใช้กับ Make, n8n, Zapier, LINE Notify ผ่านตัวกลาง หรือเซิร์ฟเวอร์ของคุณ</p>' + codeblk(payload) +
+    '<h3>3. JavaScript API: window.PKTL</h3><p>ใช้เมื่อโหลดแอปในหน้าเดียวกัน หรือสั่งผ่านคอนโซล</p>' + codeblk(api) +
+    '<h3>4. สะพาน postMessage</h3><p>ให้แอปแม่ฝังแอปนี้ด้วย iframe แล้วสั่งงานได้ ต้องเปิดที่ตั้งค่า และระบุ origin ของแอปแม่ ระบบจะไม่ตอบ origin อื่นและไม่ใช้ <span class="mono">*</span> เมธอดที่เปิดให้: ping, products, customers, addCustomer, removeCustomer, buildList, publish</p>' + codeblk(bridge) +
+    '<h3>รูปแบบข้อมูลสำรอง</h3><p>ไฟล์ .json จากปุ่มดาวน์โหลดสำรองคือ state ทั้งหมด: <span class="mono">{ v:2, cur, products:[{id,name,file,salt,secret}], rows:{ productId:[{id,exp,label,note,acct?,t}] }, done, pub, built, cfg, hooks, ui }</span> โครงสร้างนี้คือสัญญากลางที่แอปครบวงจรควรอ่านเขียนตรงกัน</p>' +
+    '<h3>แผนต่อยอดที่ออกแบบรองรับไว้</h3>' + ul([
+      'ซิงก์ข้อมูลระหว่างเครื่อง: เพิ่มตัวเก็บข้อมูลภายนอกแทน localStorage ที่ฟังก์ชัน load/save ในไฟล์ 10-state.js ที่เดียว',
+      'หลายผู้ดูแล: แยกกุญแจเซ็นออกไปเซ็นที่เซิร์ฟเวอร์ แล้วให้แอปเรียก API แทนการเซ็นในเครื่อง (รูปแบบไฟล์รายชื่อเหมือนเดิม EA ไม่ต้องแก้)',
+      'ชำระเงินและต่ออายุอัตโนมัติ: ฟัง event แล้วเรียก PKTL.addCustomer จากระบบรับชำระเงินผ่านสะพานหรือเซิร์ฟเวอร์',
+      'แดชบอร์ดรวมทุก EA: อ่าน PKTL.products() และ PKTL.customers() จากแอปแม่'
+    ]);
+}
+
+function guideFaq() {
+  return '<h2>แก้ปัญหา</h2><p>ดูข้อความที่ EA แสดงในแท็บ Experts หรือบนชาร์ต แล้วเทียบกับตาราง</p>' + table(['ข้อความที่เห็น', 'สาเหตุ', 'วิธีแก้'], [
+    ['<span class="mono">WebRequest is not allowed</span> (error 4014)', 'ยังไม่ได้อนุญาต URL ใน MT5', 'Tools › Options › Expert Advisors › ติ๊ก Allow WebRequest เพิ่ม <span class="mono">https://raw.githubusercontent.com</span> แล้วลาก EA ลงชาร์ตใหม่'],
+    ['<span class="mono">license list signature is invalid</span>', 'กุญแจใน EA ไม่ตรงกับแอป หรือไฟล์บน GitHub ไม่ใช่ฉบับจากแอปนี้', 'แท็บสร้าง EA: วางบรรทัด License ID ตรวจกุญแจ ถ้าไม่ตรงให้สร้างไฟล์ Release ใหม่ คอมไพล์ ลากใหม่ แล้วแท็บเผยแพร่ กดตรวจไฟล์จริง'],
+    ['<span class="mono">this account is not on the license list</span>', 'ID ของบัญชีไม่อยู่ในไฟล์', 'ขอบรรทัด License ID จาก Experts ของลูกค้าอีกครั้ง เพิ่มในแอป เผยแพร่ รอแคช 5 นาที แล้วลาก EA ใหม่'],
+    ['<span class="mono">license expired on …</span>', 'เลยวันหมดอายุ', 'ต่ออายุในแอป เผยแพร่ แล้วลาก EA ลงชาร์ตใหม่'],
+    ['<span class="mono">license server unreachable (error …)</span>', 'อินเทอร์เน็ตหรือ GitHub มีปัญหา', 'บัญชีที่เคยยืนยันผ่านจะเข้าออเดอร์ได้อีก 2 ชั่วโมง ตรวจเน็ตและลิงก์ raw ในเบราว์เซอร์'],
+    ['<span class="mono">… has not been verified yet</span>', 'ตรวจครั้งแรกไม่ผ่าน และบัญชีนี้ไม่เคยผ่านมาก่อน จึงไม่มีช่วงผ่อนผัน', 'แก้ตามสาเหตุที่ต่อท้ายข้อความ แล้วรอ EA ลองใหม่ทุก 10 นาที หรือลากใหม่'],
+    ['<span class="mono">license constants are not configured</span>', 'ใช้ไฟล์ต้นฉบับที่ยังมีค่า CHANGE_ME', 'ใช้ไฟล์ Release ที่สร้างจากแอป'],
+    ['<span class="mono">OFF (build without license check)</span>', 'ใช้ไฟล์ที่ LIC_ENABLED เป็น false', 'ใช้ไฟล์ Release ที่สร้างจากแอป (แอปตั้งเป็น true ให้)'],
+    ['แอปบอก “ต้องมีบรรทัด #define … 1 บรรทัดพอดี”', 'ไฟล์ต้นฉบับไม่มีบล็อกลิขสิทธิ์ หรือมีซ้ำ', 'ตรวจว่ามี #define LIC_ENABLED / LIC_URL / LIC_SALT / LIC_SECRET (หรือชื่อ PKTL_LIC_*) อย่างละ 1 บรรทัด']
+  ]) +
+    '<h3>ข้อจำกัดและความปลอดภัย</h3>' + ul([
+      'ระบบนี้กันการใช้งานโดยไม่ได้รับสิทธิ์ในระดับทั่วไป ไม่ใช่การป้องกันขั้นสูง ผู้ที่เข้าถึงไฟล์ .mq5 หรือถอดรหัส .ex5 ได้อาจหลบเลี่ยงได้ ดังนั้นห้ามแจก .mq5',
+      'ไฟล์รายชื่อบน GitHub เป็นสาธารณะ ใครก็เปิดดูได้ แต่เห็นเพียง ID แบบแฮช รหัสลูกค้า และวันหมดอายุ ไม่เห็นเลขบัญชีและแก้ไฟล์ไม่ได้เพราะลายเซ็นต้องใช้กุญแจลับ ถ้ากังวลเรื่องรหัสลูกค้า ให้ใช้รหัสที่ไม่ระบุตัวตน',
+      'กุญแจลับอยู่ในเบราว์เซอร์ของคุณและในไฟล์ EA ที่คุณสร้าง ห้ามพิมพ์ลงแชต โพสต์สาธารณะ หรือเก็บใน repo',
+      'เวลาหมดอายุเทียบกับเวลาเซิร์ฟเวอร์ของโบรกเกอร์ ผู้ใช้ปรับนาฬิกาเครื่องตัวเองไม่ได้ผล',
+      'ถ้าสงสัยว่ากุญแจรั่ว ให้สร้างกุญแจใหม่ (ตั้งค่า › จัดการกุญแจ) แล้วสร้างและแจก EA ใหม่ทั้งหมด'
+    ]);
+}
+
+function renderGuide() {
+  codeSeq = 0;
+  var el = $('#p-guide');
+  var body = { use: guideUse, add: guideAdd, dev: guideDev, faq: guideFaq }[T.guideTab]();
+  el.innerHTML = '<div class="card"><div class="seg n4" role="group" aria-label="หัวข้อคู่มือ">' + GUIDE_TABS.map(function (g) { return '<button type="button" data-guide="' + g[0] + '"' + (T.guideTab === g[0] ? ' class="on"' : '') + '>' + g[1] + '</button>'; }).join('') + '</div></div>' +
+    '<div class="card manual">' + body + '</div>';
+}
+document.addEventListener('click', function (e) {
+  var g = e.target.closest('[data-guide]');
+  if (g) { T.guideTab = g.dataset.guide; renderGuide(); window.scrollTo(0, 0); }
+});
+H.copycode = function (b) { var pre = document.getElementById(b.dataset.id); copyText(pre ? pre.textContent : '').then(function (ok) { toast(ok ? 'คัดลอกแล้ว' : 'คัดลอกอัตโนมัติไม่ได้ เลือกข้อความแล้วคัดลอกเอง', !ok); }); };
+
+/* ---- 90-boot.js ---- */
+/* =====================================================================
+   90-boot.js  -  start-up
+   ===================================================================== */
+(function boot() {
+  var migrated = load();
+  applyTheme();
+  window.PKTL.lib = Core;                 // pure helpers (no secrets) for tests / extensions
+  resetForm();
+  var t = location.hash.slice(1);
+  showTab(TABS.indexOf(t) >= 0 ? t : 'home', true);
+  renderShell();
+  if (migrated) toast('ย้ายข้อมูลจากแอปเวอร์ชันเก่าให้แล้ว');
+  if (TARGET === 'pwa' && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    navigator.serviceWorker.register('sw.js').catch(function () { /* offline cache is optional */ });
+  }
+})();
+
+})();
+</script>
+</body>
+</html>
