@@ -237,6 +237,9 @@ input[type="file"] { width: 100%; font: inherit; font-size: 14px; color: var(--m
 .seg button.on { background: var(--accent-soft); color: var(--accent); }
 .seg.n4 { grid-template-columns: repeat(4, 1fr); }
 .seg.n4 button { font-size: 13px; padding: 0 4px; }
+.seg.n5 { grid-template-columns: repeat(5, 1fr); }
+.seg.n5 button { font-size: 13px; padding: 0 4px; }
+@media (max-width: 560px) { .seg.n5 { grid-template-columns: repeat(3, 1fr); } }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .chip { min-height: 36px; padding: 0 12px; border-radius: 3px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); font: inherit; font-size: 13.5px; cursor: pointer; }
 .chip.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
@@ -627,8 +630,8 @@ var Core = (function () {
    separately ("pktl2.token") so that backups never contain it.
    ===================================================================== */
 var TARGET = 'pwa';          // 'pwa' | 'file' | 'artifact'  (replaced by build.mjs)
-var APP_VERSION = '2.0.0';
-var BUILD_ID = 'c5671c82';
+var APP_VERSION = '2.0.1';
+var BUILD_ID = 'a0220367';
 var CAN_NET = TARGET !== 'artifact'; // artifact CSP blocks fetch to other hosts
 
 var LS_KEY = 'pktl2.state', LS_TOKEN = 'pktl2.token';
@@ -1522,12 +1525,13 @@ H.install = function () { if (!installEvt) return; installEvt.prompt(); installE
 /* =====================================================================
    70-ui-guide.js  -  คู่มือ (manual tab)
      use  = 5.1 วิธีใช้แอป
+     ship = 5.3 ส่ง EA ให้ลูกค้า (ลูกค้าติดตั้ง .ex5 + สิ่งที่ฝั่งเราต้องทำ)
      add  = 5.2 วิธีนำ EA ตัวอื่นมาเพิ่มสิทธิ์แบบนี้
      dev  = ช่องทางเชื่อมต่ออนาคต (events / webhook / API / bridge / backup schema)
      faq  = แก้ปัญหา + ข้อจำกัด
    Content is plain strings so it is easy to edit.
    ===================================================================== */
-var GUIDE_TABS = [['use', 'วิธีใช้แอป'], ['add', 'เพิ่ม EA อื่น'], ['dev', 'เชื่อมต่อ'], ['faq', 'แก้ปัญหา']];
+var GUIDE_TABS = [['use', 'วิธีใช้แอป'], ['ship', 'ส่ง EA ลูกค้า'], ['add', 'เพิ่ม EA อื่น'], ['dev', 'เชื่อมต่อ'], ['faq', 'แก้ปัญหา']];
 var codeSeq = 0;
 function codeblk(text) { var id = 'cb' + (++codeSeq); return '<div class="codeblk"><pre id="' + id + '">' + esc(text) + '</pre><button type="button" class="btn sm" data-act="copycode" data-id="' + id + '">คัดลอก</button></div>'; }
 function table(head, rows) { return '<div class="tablewrap"><table style="min-width:' + (head.length > 2 ? 520 : 0) + 'px"><thead><tr>' + head.map(function (x) { return '<th>' + x + '</th>'; }).join('') + '</tr></thead><tbody>' + rows.map(function (r) { return '<tr>' + r.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>'; }
@@ -1575,6 +1579,7 @@ function guideUse() {
       'GitHub เก็บแคชลิงก์ raw ราว 5 นาที เผยแพร่แล้วอาจต้องรอก่อนที่ EA จะเห็นฉบับใหม่'
     ]) +
     '<h3>E. สร้างและแจก EA</h3>' + ul([
+      'ขั้นตอนส่ง EA ให้ลูกค้าแบบละเอียด (ทั้งฝั่งลูกค้าและฝั่งเรา) อยู่ที่หัวข้อ <b>ส่ง EA ลูกค้า</b> ด้านบน',
       'แจกเฉพาะไฟล์ <b>.ex5</b> ให้ลูกค้า ห้ามแจก .mq5 ที่สร้างจากแอป เพราะมีกุญแจลับอยู่ข้างใน',
       'ถ้าเปลี่ยนกุญแจ ชื่อไฟล์รายชื่อ หรือ repo ต้องสร้างไฟล์ EA ใหม่และแจกใหม่ทุกคน',
       'ก่อนแจกจริงให้ทดสอบบนบัญชีเดโมของคุณเอง ต้องเห็นบรรทัด <span class="mono">License OK</span> ในแท็บ Experts'
@@ -1590,6 +1595,78 @@ function guideUse() {
       'ตั้งค่า › คัดลอกข้อความสำรอง ส่งให้ตัวเอง (เช่นโน้ตส่วนตัวที่ล็อก) แล้ววางที่ช่องกู้คืนในอีกเครื่อง',
       'ข้อความสำรองมีกุญแจลับ ห้ามโพสต์สาธารณะ ห้ามอัปโหลดขึ้น GitHub'
     ]);
+}
+
+function guideShip() {
+  var p = curProd();
+  var name = p ? p.name : 'ชื่อ EA';
+  var raw = 'https://raw.githubusercontent.com';
+  var msg = 'วิธีติดตั้ง ' + name + '\n\n' +
+    '1) เปิด MT5 และล็อกอินบัญชีเทรดที่จะใช้ EA\n' +
+    '2) เมนู File > Open Data Folder > เปิดโฟลเดอร์ MQL5 > Experts\n' +
+    '   วางไฟล์ .ex5 ที่ได้รับลงในโฟลเดอร์นี้\n' +
+    '3) กลับมาที่ MT5 หน้าต่าง Navigator คลิกขวาที่ Expert Advisors > Refresh\n' +
+    '4) เมนู Tools > Options > แท็บ Expert Advisors\n' +
+    '   - ติ๊ก Allow algorithmic trading\n' +
+    '   - ติ๊ก Allow WebRequest for listed URL\n' +
+    '   - เพิ่ม ' + raw + ' แล้วกด OK\n' +
+    '5) ปุ่ม Algo Trading บนแถบเครื่องมือต้องเป็นสีเขียว\n' +
+    '6) เปิดชาร์ตตามที่แนะนำ แล้วลาก EA จาก Navigator ลงชาร์ต\n' +
+    '   แท็บ Common ติ๊ก Allow Algo Trading แล้วกด OK\n' +
+    '7) ครั้งแรก EA จะยังไม่เทรด (ยังไม่ได้ลงทะเบียน) ไม่ต้องตกใจ\n' +
+    '   เปิดแท็บ Experts ด้านล่าง หาบรรทัด "License ID: ..."\n' +
+    '   คลิกบรรทัดนั้น กด Ctrl+C แล้วส่งข้อความนั้นกลับมา (ไม่ต้องถ่ายรูป)\n' +
+    '8) เมื่อได้รับแจ้งว่าเปิดสิทธิ์แล้ว ลบ EA ออกจากชาร์ตแล้วลากใหม่\n' +
+    '   บนชาร์ตต้องขึ้น License : OK\n\n' +
+    'หมายเหตุ: สิทธิ์ผูกกับบัญชีเทรดและเซิร์ฟเวอร์ ถ้าเปลี่ยนบัญชีหรือย้ายไป VPS/คอมเครื่องอื่นด้วยบัญชีเดิม ใช้ได้ตามปกติ แต่ถ้าเปลี่ยนเลขบัญชีต้องส่ง License ID ใหม่';
+  return '<h2><span class="badge">5.3</span>ส่ง EA ให้ลูกค้า</h2>' +
+    '<p>หัวข้อนี้มี 2 ส่วน: <b>ส่วนที่ 1</b> ลูกค้าติดตั้งไฟล์ .ex5 อย่างไร (มีข้อความสำเร็จรูปให้คัดลอกส่ง) และ <b>ส่วนที่ 2</b> ฝั่งเราต้องทำอะไรบ้าง ตั้งแต่ก่อนส่งไฟล์จนลูกค้าใช้งานได้</p>' +
+    '<div class="note"><b>หลักสำคัญ</b><br>คอมไพล์ .ex5 ครั้งเดียว ส่งไฟล์เดียวกันให้ลูกค้าทุกคน แล้วควบคุมสิทธิ์ (ใครใช้ได้ ใช้ได้ถึงวันไหน) จากแอปนี้ทั้งหมด เพิ่ม ต่ออายุ หรือยกเลิกลูกค้า <b>ไม่ต้อง</b>คอมไพล์ใหม่และไม่ต้องส่งไฟล์ใหม่</div>' +
+
+    '<h3>ส่วนที่ 1 · ลูกค้าติดตั้ง EA (.ex5)</h3>' + ol([
+      '<b>ล็อกอินบัญชีที่จะใช้</b> เปิด MT5 แล้วล็อกอินบัญชีเทรดที่ซื้อสิทธิ์ไว้ (สิทธิ์ผูกกับเลขบัญชี บริษัทโบรกเกอร์ และเซิร์ฟเวอร์)',
+      '<b>วางไฟล์</b> เมนู File › Open Data Folder › เปิดโฟลเดอร์ MQL5 › Experts แล้ววางไฟล์ .ex5 ลงไป',
+      '<b>รีเฟรช</b> หน้าต่าง Navigator (Ctrl+N) คลิกขวาที่ Expert Advisors › Refresh จะเห็นชื่อ EA ขึ้นมา (หรือปิดเปิด MT5 ใหม่)',
+      '<b>อนุญาตให้ EA ทำงานและอ่านรายชื่อ</b> Tools › Options › แท็บ Expert Advisors ติ๊ก <b>Allow algorithmic trading</b> และ <b>Allow WebRequest for listed URL</b> แล้วเพิ่มบรรทัด <span class="mono">' + raw + '</span> กด OK (ถ้าไม่ทำข้อนี้ EA จะขึ้น error 4014 และตรวจสิทธิ์ไม่ได้)',
+      '<b>เปิด Algo Trading</b> ปุ่ม Algo Trading บนแถบเครื่องมือต้องเป็นสีเขียว',
+      '<b>ลาก EA ลงชาร์ต</b> เปิดชาร์ตคู่เงินและไทม์เฟรมตามที่คุณแนะนำ ลาก EA จาก Navigator ลงชาร์ต แท็บ Common ติ๊ก Allow Algo Trading ตั้งค่า Inputs ตามที่คุณให้ (หรือกด Load ไฟล์ .set ถ้าคุณส่งให้) แล้วกด OK',
+      '<b>ส่ง License ID ให้คุณ (ครั้งแรกเท่านั้น)</b> EA จะยังไม่เปิดออเดอร์เพราะยังไม่อยู่ในรายชื่อ ให้เปิดแท็บ <b>Experts</b> ในหน้าต่าง Toolbox (Ctrl+T) หาบรรทัด <span class="mono">License ID: …… (login … | … | …)</span> คลิกบรรทัดนั้น กด Ctrl+C แล้วส่งข้อความมา ไม่ควรส่งเป็นรูป เพราะอ่าน ID ผิดง่าย',
+      '<b>เริ่มใช้งาน</b> เมื่อคุณแจ้งว่าเปิดสิทธิ์แล้ว ให้ลบ EA ออกจากชาร์ตแล้วลากใหม่ (หรือรอ EA ลองตรวจซ้ำเองทุก 10 นาที) บนชาร์ตต้องขึ้น <span class="mono">License : OK - … - valid through …</span>'
+    ]) +
+    '<h3>ข้อความสำเร็จรูปสำหรับส่งลูกค้า</h3><p>กดคัดลอกแล้ววางในแชตพร้อมไฟล์ .ex5 ได้เลย</p>' + codeblk(msg) +
+    '<h3>เรื่องที่ควรแจ้งลูกค้า</h3>' + ul([
+      'EA ต้องต่ออินเทอร์เน็ตตอนเริ่มทำงาน เพื่ออ่านรายชื่อสิทธิ์จาก GitHub',
+      'ใช้บน VPS หรือคอมเครื่องอื่นได้ ถ้าเป็นบัญชีเทรดเดิม (เลขบัญชี โบรกเกอร์ และเซิร์ฟเวอร์เดิม) ไม่ต้องลงทะเบียนใหม่ แต่ต้องตั้งค่า WebRequest ในเครื่องนั้นด้วย',
+      'ถ้าเปลี่ยนเลขบัญชี ย้ายโบรกเกอร์ หรือเปลี่ยนเซิร์ฟเวอร์ ต้องส่ง License ID ใหม่',
+      'ถ้า EA ขึ้นข้อความ error ให้ส่งบรรทัดในแท็บ Experts มา (ดูวิธีแก้ที่หัวข้อแก้ปัญหา)'
+    ]) +
+
+    '<h3>ส่วนที่ 2 · สิ่งที่ฝั่งเราต้องทำ</h3>' +
+    '<p><b>ก. ก่อนส่งไฟล์ครั้งแรก (ทำครั้งเดียวต่อเวอร์ชัน EA)</b></p>' + ol([
+      'แท็บ <b>สร้าง EA</b> สร้างไฟล์ Release จากซอร์ส .mq5 แล้วคอมไพล์ใน MetaEditor (F7) ต้องได้ <b>0 errors</b>',
+      'ทดสอบบนบัญชีเดโมของคุณเอง: เพิ่ม ID ของบัญชีเดโมในแอป เผยแพร่ ลาก EA ลงชาร์ต ต้องเห็น <span class="mono">License : OK</span>',
+      'ไฟล์ที่ส่งให้ลูกค้าคือ <b>.ex5</b> ที่อยู่ใน MQL5\\Experts ของ MT5 (ตัวที่คอมไพล์และทดสอบแล้ว) เปลี่ยนชื่อไฟล์ให้ดูเรียบร้อยได้ เช่นตัดคำว่า _Release ออก ระบบสิทธิ์ยังทำงานเหมือนเดิม',
+      'เก็บไฟล์ .mq5 ไว้กับตัวเองเท่านั้น <b>ห้ามส่ง .mq5</b> ข้อความสำรอง หรือกุญแจให้ใคร'
+    ]) +
+    '<p><b>ข. ทุกครั้งที่มีลูกค้าใหม่</b></p>' + ol([
+      '<b>ส่งไฟล์</b> ส่ง .ex5 พร้อมข้อความสำเร็จรูปด้านบน',
+      '<b>รับ License ID</b> รอลูกค้าส่งบรรทัด <span class="mono">License ID: …</span> กลับมา',
+      '<b>เพิ่มลูกค้า</b> แท็บ <b>ลูกค้า</b> › “มี ID แล้ว” วางทั้งบรรทัด แอปดึง ID ให้เอง ใส่รหัสลูกค้า (ตัวอังกฤษ ไม่ระบุตัวตน เช่น c002 เพราะไฟล์รายชื่อเป็นสาธารณะ) ใส่ชื่อจริงหรือข้อมูลการชำระเงินในช่องหมายเหตุ (เก็บเฉพาะในแอป) และตั้งวันหมดอายุ',
+      '<b>เผยแพร่</b> แท็บ <b>เผยแพร่</b> › “เผยแพร่ขึ้น GitHub” (หรือวางเองบน GitHub) แล้วกดตรวจไฟล์จริง ต้องขึ้นว่าตรงกับในแอป',
+      '<b>รอแคช</b> GitHub เก็บแคชไฟล์ราว 5 นาที รอสักครู่ก่อนแจ้งลูกค้า',
+      '<b>แจ้งลูกค้า</b> บอกให้ลบ EA ออกจากชาร์ตแล้วลากใหม่ แล้วขอภาพหน้าจอที่เห็น <span class="mono">License : OK</span> บนชาร์ตเพื่อยืนยัน',
+      '<b>สำรองข้อมูล</b> หลังเพิ่มลูกค้า ควรสำรองข้อมูลแอปจากหน้าตั้งค่าเก็บไว้ในที่ปลอดภัย'
+    ]) +
+    '<p><b>ค. ดูแลหลังส่งมอบ</b></p>' + table(['เหตุการณ์', 'สิ่งที่ต้องทำในแอป', 'ต้องส่งไฟล์ใหม่ไหม'], [
+      ['ลูกค้าต่ออายุ', 'แท็บลูกค้า กด +30 / +90 / +1 ปี หรือแก้วันเอง › เผยแพร่', 'ไม่ต้อง'],
+      ['ใกล้หมดอายุ', 'หน้าภาพรวมแสดงลูกค้าที่ใกล้หมดอายุ ติดต่อลูกค้าล่วงหน้า', 'ไม่ต้อง'],
+      ['ยกเลิกสิทธิ์', 'ลบลูกค้า หรือตั้งวันหมดอายุเป็นเมื่อวาน › เผยแพร่ (มีผลเมื่อ EA ลูกค้าเริ่มทำงานครั้งถัดไป)', 'ไม่ต้อง'],
+      ['ลูกค้าเปลี่ยนเลขบัญชี / โบรกเกอร์', 'ขอ License ID ใหม่ เพิ่ม ID ใหม่ ลบ ID เดิม › เผยแพร่', 'ไม่ต้อง'],
+      ['ลูกค้าย้ายเครื่อง / VPS (บัญชีเดิม)', 'ไม่ต้องทำอะไร ให้ลูกค้าตั้งค่า WebRequest ในเครื่องใหม่', 'ไม่ต้อง (ใช้ไฟล์เดิม)'],
+      ['ออก EA เวอร์ชันใหม่ (แก้กลยุทธ์)', 'สร้างไฟล์ Release จากซอร์สใหม่ คอมไพล์ ทดสอบบนเดโม (กุญแจเดิม รายชื่อลูกค้าเดิมใช้ต่อได้)', 'ต้อง ส่ง .ex5 ใหม่ให้ทุกคน'],
+      ['สงสัยว่ากุญแจรั่ว', 'สร้างกุญแจใหม่ › สร้าง EA ใหม่ › เผยแพร่ใหม่', 'ต้อง ส่ง .ex5 ใหม่ให้ทุกคน']
+    ]) +
+    '<div class="note warn"><b>ห้ามเด็ดขาด</b><br>ห้ามส่งไฟล์ .mq5 ห้ามส่งข้อความสำรองหรือรหัสกุญแจ และห้ามใส่เลขบัญชีหรือชื่อจริงของลูกค้าในช่องรหัสลูกค้า เพราะไฟล์รายชื่อบน GitHub ใครก็เปิดดูได้</div>';
 }
 
 function guideAdd() {
@@ -1669,8 +1746,8 @@ function guideFaq() {
 function renderGuide() {
   codeSeq = 0;
   var el = $('#p-guide');
-  var body = { use: guideUse, add: guideAdd, dev: guideDev, faq: guideFaq }[T.guideTab]();
-  el.innerHTML = '<div class="card"><div class="seg n4" role="group" aria-label="หัวข้อคู่มือ">' + GUIDE_TABS.map(function (g) { return '<button type="button" data-guide="' + g[0] + '"' + (T.guideTab === g[0] ? ' class="on"' : '') + '>' + g[1] + '</button>'; }).join('') + '</div></div>' +
+  var body = { use: guideUse, ship: guideShip, add: guideAdd, dev: guideDev, faq: guideFaq }[T.guideTab]();
+  el.innerHTML = '<div class="card"><div class="seg n5" role="group" aria-label="หัวข้อคู่มือ">' + GUIDE_TABS.map(function (g) { return '<button type="button" data-guide="' + g[0] + '"' + (T.guideTab === g[0] ? ' class="on"' : '') + '>' + g[1] + '</button>'; }).join('') + '</div></div>' +
     '<div class="card manual">' + body + '</div>';
 }
 document.addEventListener('click', function (e) {
