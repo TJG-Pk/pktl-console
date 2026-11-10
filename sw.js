@@ -1,8 +1,8 @@
-/* PKTL License Manager - service worker (offline shell). Build: a0220367
+/* PKTL License Manager - service worker (offline shell). Build: df60287d
    - app files: network-first with cache fallback (so a new deploy shows up on the next open, and it still opens offline)
    - fonts (googleapis / gstatic): stale-while-revalidate
    - GitHub (api.github.com, raw.githubusercontent.com, github.com) and everything else: never touched */
-const CACHE = 'pktl-lic-a0220367';
+const CACHE = 'pktl-lic-df60287d';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
